@@ -1,23 +1,37 @@
-/* ARCHITECT // VAULT - Stylesheet */
+/* ARCHITECT // VAULT - Neon Pink to Purple Design System */
+/* Updated color scheme from green to neon pink/purple gradient */
 
 :root {
-  --color-bg: #0a0a0a;
-  --color-surface: #1a1a1a;
-  --color-surface-hover: #242424;
-  --color-border: #2a2a2a;
-  --color-primary: #00ff88;
-  --color-primary-hover: #00cc6a;
-  --color-secondary: #ffffff;
+  /* Background colors */
+  --color-bg: #0a0a0f;
+  --color-surface: #12121a;
+  --color-surface-hover: #1a1a24;
+  --color-border: #2a2a3a;
+
+  /* Neon pink to purple gradient palette */
+  --color-primary: #ff00ff;
+  --color-primary-hover: #cc00cc;
+  --color-secondary: #9d4edd;
+  --color-accent: #c77dff;
+  --color-highlight: #e0aaff;
+
+  /* Gradient definitions */
+  --gradient-primary: linear-gradient(135deg, #ff00ff 0%, #9d4edd 50%, #7b2cbf 100%);
+  --gradient-accent: linear-gradient(90deg, #ff00ff, #c77dff);
+  --gradient-glow: linear-gradient(135deg, rgba(255, 0, 255, 0.3), rgba(157, 78, 221, 0.3));
+
+  /* Text colors */
   --color-text: #e0e0e0;
-  --color-text-dim: #888888;
-  --color-danger: #ff4444;
+  --color-text-dim: #888898;
+  --color-danger: #ff4466;
   --color-warning: #ffaa00;
+  --color-success: #00ff88;
   --color-info: #4488ff;
 
   --font-mono: "Courier New", monospace;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  --border-radius: 4px;
+  --border-radius: 6px;
   --transition: all 0.2s ease;
 }
 
@@ -56,11 +70,15 @@ body {
   align-items: center;
 }
 
+/* Brand uses gradient text */
 .nav-brand a {
   font-family: var(--font-mono);
   font-size: 18px;
   font-weight: bold;
-  color: var(--color-primary);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   text-decoration: none;
   letter-spacing: 1px;
 }
@@ -81,7 +99,7 @@ body {
   color: var(--color-primary);
 }
 
-/* Buttons */
+/* Buttons with gradient styling */
 .btn-primary,
 .btn-secondary {
   padding: 10px 20px;
@@ -95,12 +113,14 @@ body {
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: var(--color-bg);
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
 }
 
 .btn-primary:hover {
-  background: var(--color-primary-hover);
+  box-shadow: 0 0 30px rgba(255, 0, 255, 0.5);
+  transform: translateY(-2px);
 }
 
 .btn-secondary {
@@ -112,6 +132,7 @@ body {
 .btn-secondary:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
 }
 
 .btn-lg {
@@ -129,17 +150,30 @@ body {
   text-align: center;
 }
 
-/* Hero Section */
+/* Hero Section with gradient title */
 .hero {
   padding: 120px 0;
   text-align: center;
+  position: relative;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(255, 0, 255, 0.15) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .hero-title {
   font-size: 48px;
   font-weight: 700;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-info));
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -170,6 +204,10 @@ body {
   text-align: center;
   font-size: 36px;
   margin-bottom: 60px;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .features-grid {
@@ -178,17 +216,38 @@ body {
   gap: 32px;
 }
 
+/* Feature cards with gradient border on hover */
 .feature-card {
   background: var(--color-bg);
   padding: 32px;
   border-radius: var(--border-radius);
   border: 1px solid var(--color-border);
   transition: var(--transition);
+  position: relative;
+}
+
+.feature-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--border-radius);
+  padding: 1px;
+  background: var(--gradient-primary);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
 }
 
 .feature-card:hover {
-  border-color: var(--color-primary);
   transform: translateY(-4px);
+  box-shadow: 0 10px 40px rgba(255, 0, 255, 0.1);
 }
 
 .feature-icon {
@@ -221,18 +280,20 @@ body {
   text-align: center;
 }
 
+/* Step numbers with gradient */
 .step-number {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: var(--color-bg);
+  background: var(--gradient-primary);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   font-weight: bold;
   margin: 0 auto 20px;
+  box-shadow: 0 0 30px rgba(255, 0, 255, 0.4);
 }
 
 .step h3 {
@@ -247,15 +308,32 @@ body {
 .cta {
   padding: 80px 0;
   background: var(--color-surface);
+  position: relative;
+  overflow: hidden;
+}
+
+.cta::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(157, 78, 221, 0.1) 0%, transparent 70%);
 }
 
 .cta-content {
   text-align: center;
+  position: relative;
 }
 
 .cta-content h2 {
   font-size: 36px;
   margin-bottom: 16px;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .cta-content p {
@@ -276,6 +354,7 @@ body {
   min-height: calc(100vh - 200px);
 }
 
+/* Auth card with gradient border */
 .auth-card {
   max-width: 500px;
   margin: 0 auto;
@@ -283,11 +362,29 @@ body {
   padding: 40px;
   border-radius: var(--border-radius);
   border: 1px solid var(--color-border);
+  position: relative;
+}
+
+.auth-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--border-radius);
+  padding: 1px;
+  background: var(--gradient-primary);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
 }
 
 .auth-card h1 {
   margin-bottom: 8px;
-  color: var(--color-primary);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .auth-subtitle {
@@ -305,6 +402,7 @@ body {
   font-weight: 500;
 }
 
+/* Form inputs with gradient focus border */
 .auth-form input,
 .auth-form textarea,
 .auth-form select {
@@ -323,6 +421,7 @@ body {
 .auth-form select:focus {
   outline: none;
   border-color: var(--color-primary);
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
 }
 
 .auth-form textarea {
@@ -350,6 +449,10 @@ body {
   text-decoration: none;
 }
 
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
 .challenge-box {
   background: var(--color-bg);
   padding: 16px;
@@ -358,6 +461,7 @@ body {
   font-size: 14px;
   overflow-x: auto;
   margin: 16px 0;
+  border: 1px solid var(--color-border);
 }
 
 .alert {
@@ -367,13 +471,13 @@ body {
 }
 
 .alert-info {
-  background: rgba(68, 136, 255, 0.1);
-  border: 1px solid var(--color-info);
+  background: rgba(157, 78, 221, 0.1);
+  border: 1px solid var(--color-secondary);
 }
 
 .alert h4 {
   margin-bottom: 8px;
-  color: var(--color-info);
+  color: var(--color-secondary);
 }
 
 /* Dashboard */
@@ -387,6 +491,10 @@ body {
 
 .dashboard-header h1 {
   margin-bottom: 8px;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .dashboard-header p {
@@ -404,6 +512,12 @@ body {
   padding: 24px;
   border-radius: var(--border-radius);
   border: 1px solid var(--color-border);
+  transition: var(--transition);
+}
+
+.dashboard-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.1);
 }
 
 .dashboard-card h3 {
@@ -423,6 +537,10 @@ body {
 
 .page-header h1 {
   margin-bottom: 8px;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .page-header p {
@@ -442,6 +560,11 @@ body {
   border-radius: var(--border-radius);
   color: var(--color-text);
   font-family: inherit;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
 
 .leads-grid,
@@ -464,6 +587,7 @@ body {
 .lead-card:hover,
 .listing-card:hover {
   border-color: var(--color-primary);
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.1);
 }
 
 .lead-header {
@@ -472,14 +596,16 @@ body {
   margin-bottom: 16px;
 }
 
+/* Category badges with gradient background */
 .lead-category,
 .lead-scope {
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background: var(--gradient-glow);
+  border: 1px solid var(--color-primary);
+  color: var(--color-highlight);
 }
 
 .lead-title,
@@ -515,6 +641,7 @@ body {
   margin-bottom: 16px;
 }
 
+/* Progress bar with gradient fill */
 .progress-bar {
   height: 8px;
   background: var(--color-bg);
@@ -525,7 +652,7 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: var(--color-primary);
+  background: var(--gradient-primary);
   transition: var(--transition);
 }
 
@@ -583,6 +710,7 @@ body {
   border-radius: 3px;
   font-family: var(--font-mono);
   font-size: 14px;
+  color: var(--color-primary);
 }
 
 /* Footer */
@@ -603,7 +731,10 @@ body {
 .footer-section h3,
 .footer-section h4 {
   margin-bottom: 16px;
-  color: var(--color-primary);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .footer-section p {
@@ -635,8 +766,6 @@ body {
   color: var(--color-text-dim);
 }
 
-/* Adding comprehensive dashboard and form styles from no-JS templates */
-
 /* Dashboard Layout */
 .dashboard-container {
   display: grid;
@@ -664,11 +793,12 @@ body {
   margin-bottom: 8px;
 }
 
+/* Role badge with gradient */
 .user-info .role-badge {
   display: inline-block;
   padding: 4px 12px;
-  background: var(--color-primary);
-  color: var(--color-bg);
+  background: var(--gradient-primary);
+  color: white;
   border-radius: 4px;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -703,8 +833,8 @@ body {
 }
 
 .sidebar-link.active {
-  background: var(--color-primary);
-  color: var(--color-bg);
+  background: var(--gradient-primary);
+  color: white;
   font-weight: 600;
 }
 
@@ -721,7 +851,7 @@ body {
   max-width: 1000px;
 }
 
-/* Stats Grid */
+/* Stats Grid with gradient accents */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -735,13 +865,22 @@ body {
   border-radius: var(--border-radius);
   padding: 24px;
   text-align: center;
+  transition: var(--transition);
+}
+
+.stat-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.1);
 }
 
 .stat-value {
   display: block;
   font-size: 2rem;
   font-weight: 700;
-  color: var(--color-primary);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 8px;
 }
 
@@ -812,22 +951,22 @@ body {
 }
 .status-published,
 .status-active {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(255, 0, 255, 0.2);
+  color: var(--color-primary);
 }
 .status-matched,
 .status-in_progress {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(157, 78, 221, 0.2);
+  color: var(--color-secondary);
 }
 .status-completed,
 .status-accepted {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(0, 255, 136, 0.2);
+  color: var(--color-success);
 }
 .status-rejected {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(255, 68, 102, 0.2);
+  color: var(--color-danger);
 }
 .status-paused {
   background: #fef3c7;
@@ -845,8 +984,8 @@ body {
 }
 
 .urgency-urgent {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(255, 68, 102, 0.2);
+  color: var(--color-danger);
 }
 .urgency-moderate {
   background: #fef3c7;
@@ -862,12 +1001,12 @@ body {
 .category {
   display: inline-block;
   padding: 4px 12px;
-  background: var(--color-surface-hover);
+  background: var(--gradient-glow);
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
-  color: var(--color-text-dim);
+  color: var(--color-highlight);
 }
 
 /* Text utilities */
@@ -876,7 +1015,20 @@ body {
 }
 
 .text-success {
-  color: #22c55e;
+  color: var(--color-success);
+}
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+/* Glow effect utility */
+.glow {
+  box-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
 }
 
 /* Forms */
@@ -917,6 +1069,7 @@ body {
 .form-group select:focus {
   outline: none;
   border-color: var(--color-primary);
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
 }
 
 .form-group textarea {
@@ -945,6 +1098,7 @@ body {
 
 .checkbox-label input[type="checkbox"] {
   margin-top: 4px;
+  accent-color: var(--color-primary);
 }
 
 .form-actions {
@@ -1009,7 +1163,20 @@ body {
 
 .section-header h2 {
   font-size: 1.5rem;
-  color: var(--color-primary);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Verified Badge */
+.verified-badge {
+  background: var(--gradient-primary);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 /* Responsive */
@@ -1036,6 +1203,7 @@ body {
   .listings-grid {
     grid-template-columns: 1fr;
   }
+
   .dashboard-container {
     grid-template-columns: 1fr;
   }

@@ -1,159 +1,648 @@
 ARCHITECT // VAULT - Complete Technical Summary & Build Guide
-Executive Overview
-ARCHITECT // VAULT is a secure platform connecting whistleblowers with verified journalists, featuring anonymous source leads, encrypted communications, tiered support listings, and Monero-based donations. The platform operates as a Tor v3 onion service with optional clearnet access for journalists.
 
-System Architecture Diagram
+## Executive Overview
+
+# ARCHITECT // VAULT - Anonymous XMR Marketplace Platform
+ARCHITECT // VAULT is an anonymous marketplace platform connecting buyers with verified vendors, featuring opportunity leads, encrypted communications, tiered vendor listings, and Monero-based payments. The platform operates as a Tor v3 onion service for maximum anonymity.
+
+## System Architecture Diagram
+
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              ARCHITECT // VAULT ARCHITECTURE                            │
+│                              ARCHITECT // VAULT                                          │
+│                         Anonymous XMR Marketplace Platform                               │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                              CLIENT LAYER                                        │   │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │   │
-│  │  │  Tor Browser │  │   Clearnet   │  │   Mobile     │  │    API       │         │   │
-│  │  │   (Sources)  │  │ (Journalists)│  │  (Future)    │  │   Clients    │         │   │
-│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │   │
-│  └─────────┼─────────────────┼─────────────────┼─────────────────┼──────────────────┘   │
-│            │                 │                 │                 │                      │
-│            ▼                 ▼                 ▼                 ▼                      │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                              EDGE LAYER                                          │   │
-│  │  ┌──────────────────────────────────────────────────────────────────────────┐   │   │
-│  │  │                         Tor Onion Service (v3)                            │   │   │
-│  │  │                    56-char .onion address + Vanguards                     │   │   │
-│  │  └──────────────────────────────────┬───────────────────────────────────────┘   │   │
-│  │                                     │                                            │   │
-│  │  ┌──────────────────────────────────┴───────────────────────────────────────┐   │   │
-│  │  │                    Caddy Reverse Proxy (TLS 1.3)                          │   │   │
-│  │  │              Rate Limiting │ Request Filtering │ Security Headers         │   │   │
-│  │  └──────────────────────────────────┬───────────────────────────────────────┘   │   │
-│  └─────────────────────────────────────┼────────────────────────────────────────────┘   │
-│                                        │                                                │
-│                                        ▼                                                │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                           APPLICATION LAYER                                      │   │
-│  │                                                                                   │   │
-│  │  ┌─────────────────────────────────────────────────────────────────────────┐    │   │
-│  │  │                      FastAPI Application (Uvicorn)                       │    │   │
-│  │  │                     Python 3.11+ │ AsyncIO │ uvloop                      │    │   │
-│  │  ├─────────────────────────────────────────────────────────────────────────┤    │   │
-│  │  │                                                                          │    │   │
-│  │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │    │   │
-│  │  │  │    Auth     │ │   Leads     │ │  Messages   │ │  Listings   │        │    │   │
-│  │  │   │   Module    │ │   Module    │ │   Module    │ │   Module    │        │    │   │
-│  │  │   │ (ARCHITECT) │ │             │ │  (PGP E2E)  │ │  (Support)  │        │    │   │
-│  │  │   └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘        │    │   │
-│  │  │                                                                          │    │   │
-│  │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │    │   │
-│  │  │  │  Payments   │ │   Admin     │ │Subscriptions│ │  Analytics  │        │    │   │
-│  │  │  │   (Monero)  │ │   Moderation  │ │             │ │  (Privacy)  │        │    │   │
-│  │  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘        │    │   │
-│  │  │                                                                          │    │   │
-│  │  └─────────────────────────────────────────────────────────────────────────┘    │   │
-│  │                                                                                   │   │
-│  │  ┌─────────────────────────────────────────────────────────────────────────┐    │   │
-│  │  │                      Background Workers (Celery)                         │    │   │
-│  │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │    │   │
-│  │  │  │ Payment  │ │  Lead    │ │Subscription│ │  Cleanup │ │ Notifier │       │    │   │
-│  │  │  │ Monitor  │ │  Expiry  │ │  Renewal  │ │  Worker  │ │  Worker  │       │    │   │
-│  │  │  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘       │    │   │
-│  │  └─────────────────────────────────────────────────────────────────────────┘    │   │
-│  └──────────────────────────────────────────────────────────────────────────────────┘   │
-│                                        │                                                │
-│                                        ▼                                                │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                              DATA LAYER                                          │   │
-│  │                                                                                   │   │
-│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐               │   │
-│  │  │   PostgreSQL 16  │  │    Redis 7.2     │  │   File Storage   │               │   │
-│  │  │   (Primary DB)   │  │  (Cache/Queue)   │  │   (Encrypted)    │               │   │
-│  │  │                  │  │                  │  │                  │               │   │
-│  │  │ • Users          │  │ • Sessions       │  │ • Media files    │               │   │
-│  │  │ • Leads          │  │ • Rate limits    │  │ • Documents      │               │   │
-│  │  │ • Messages       │  │ • Challenge cache│  │ • Backups        │               │   │
-│  │  │ • Listings       │  │ • Task queue     │  │                  │               │   │
-│  │  │ • Contributions  │  │ • Pub/Sub        │  │                  │               │   │
-│  │  └──────────────────┘  └──────────────────┘  └──────────────────┘               │   │
-│  └──────────────────────────────────────────────────────────────────────────────────┘   │
-│                                        │                                                │
-│                                        ▼                                                │
-│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                           CRYPTO LAYER                                           │   │
-│  │                                                                                   │   │
-│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐               │   │
-│  │  │   GnuPG 2.4+     │  │    Monerod       │  │  Monero Wallet   │               │   │
-│  │  │   (PGP Engine)   │  │  (Full Node)     │  │      RPC         │               │   │
-│  │  │                  │  │                  │  │                  │               │   │
-│  │  │ • Key management │  │ • Blockchain     │  │ • Address gen    │               │   │
-│  │  │ • Encryption     │  │ • Transaction    │  │ • Balance check  │               │   │
-│  │  │ • Signatures     │  │   validation     │  │ • Transfers      │               │   │
-│  │  │ • Verification   │  │ • P2P network    │  │ • Payment proofs │               │   │
-│  │  └──────────────────┘  └──────────────────┘  └──────────────────┘               │   │
-│  └──────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                         │
+│                                                                                          │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │
+│   │   Buyers    │    │   Vendors   │    │   Admins    │    │   Public    │              │
+│   │  (Seekers)  │    │ (Providers) │    │(Moderators) │    │  (Browse)   │              │
+│   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘    └──────┬──────┘              │
+│          │                  │                  │                  │                      │
+│          └──────────────────┴──────────────────┴──────────────────┘                      │
+│                                      │                                                   │
+│                              ┌───────▼───────┐                                           │
+│                              │  Tor Network  │                                           │
+│                              │   (.onion)    │                                           │
+│                              └───────┬───────┘                                           │
+│                                      │                                                   │
+│   ┌──────────────────────────────────▼──────────────────────────────────┐               │
+│   │                        FastAPI Application                           │               │
+│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  │               │
+│   │  │    Auth     │  │   Leads     │  │  Listings   │  │  Messages  │  │               │
+│   │  │   (PGP)     │  │(Marketplace)│  │  (Vendor)   │  │(Encrypted) │  │               │
+│   │  └─────────────┘  └─────────────┘  └─────────────┘  └────────────┘  │               │
+│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  │               │
+│   │  │   Admin     │  │Subscriptions│  │   Monero    │  │   Rate     │  │               │
+│   │  │Moderation   │  │  (Tiers)    │  │  Payments   │  │  Limiter   │  │               │
+│   │  └─────────────┘  └─────────────┘  └─────────────┘  └────────────┘  │               │
+│   └──────────────────────────────────┬──────────────────────────────────┘               │
+│                                      │                                                   │
+│          ┌───────────────────────────┼───────────────────────────┐                      │
+│          │                           │                           │                      │
+│   ┌──────▼──────┐            ┌───────▼───────┐           ┌───────▼───────┐              │
+│   │ PostgreSQL  │            │    Redis      │           │    Celery     │              │
+│   │  Database   │            │    Cache      │           │   Workers     │              │
+│   └─────────────┘            └───────────────┘           └───────────────┘              │
+│                                                                                          │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
-Technology Stack Summary
-Layer	Technology	Purpose
-Runtime	Python 3.11+	Core language with asyncio
-Framework	FastAPI 0.109+	Async web framework
-Server	Uvicorn + uvloop	High-performance ASGI
-Database	PostgreSQL 16	Primary data store
-Cache	Redis 7.2	Sessions, rate limits, queues
-Task Queue	Celery	Background job processing
-ORM	SQLAlchemy 2.0	Async database access
-Migrations	Alembic	Schema versioning
-Templates	Jinja2	Server-side rendering
-Crypto	python-gnupg	PGP operations
-Payments	monero-python	XMR integration
-Proxy	Caddy 2.7	Reverse proxy, TLS
-Anonymity	Tor 0.4.8+	Onion service
-OS	Debian 12	Hardened server
-Core Features Breakdown
+\`\`\`
+
+## Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| Backend | Python 3.11+ / FastAPI | Async API framework |
+| Database | PostgreSQL 16 | Primary data store |
+| Cache | Redis 7.2 | Sessions, rate limits, queues |
+| Task Queue | Celery | Background job processing |
+| ORM | SQLAlchemy 2.0 | Async database access |
+| Migrations | Alembic | Schema versioning |
+| Templates | Jinja2 | Server-side rendering |
+| Crypto | python-gnupg | PGP operations |
+| Payments | monero-python | XMR integration |
+| Proxy | Caddy 2.7 | Reverse proxy, TLS |
+| Anonymity | Tor 0.4.8+ | Onion service |
+| OS | Debian 12 | Hardened server |
+
+## Core Features Breakdown
+
+### 1. Authentication (ARCHITECT Protocol)
+- PGP-based challenge-response authentication
+- No passwords stored - cryptographic proof of identity
+- Session binding to Tor circuits
+- Rate limiting and progressive lockout
+
+### 2. Opportunity System (Marketplace)
+- Buyers submit opportunity requests (category, scope, requirements)
+- Admin moderation before publication
+- Vendors browse and express interest
+- Buyer selects vendor for secure communication
+
+### 3. Secure Messaging
+- End-to-end PGP encryption
+- Messages encrypted to recipient's public key
+- Platform cannot read message contents
+- Conversation tied to opportunity context
+
+### 4. Vendor Listings
+- Vendors create public profiles with services
+- Configurable pricing tiers
+- Single-use XMR addresses per transaction
+- Anonymous review system
+- Progress tracking and updates
+
+### 5. Subscription System
+- Vendor tiers: Free, Basic ($50/mo), Pro ($150/mo), Enterprise ($500/mo)
+- Each tier unlocks additional features
+- XMR-only payments via integrated addresses
+- Automatic renewal tracking
+
+## User Roles
+
+| Role | Description | Capabilities |
+|------|-------------|--------------|
+| BUYER | Seekers looking for goods/services | Post opportunities, browse vendors, make payments |
+| VENDOR | Providers of goods/services | Respond to opportunities, create listings, receive payments |
+| ADMIN | Platform moderators | Review content, verify vendors, manage users |
+
+## Database Schema
+
+\`\`\`python
+# User roles
+class UserRole(str, enum.Enum):
+    BUYER = "buyer"
+    VENDOR = "vendor"
+    ADMIN = "admin"
+
+# Vendor verification status
+class VerificationStatus(str, enum.Enum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
+    SUSPENDED = "suspended"
+
+# Vendor profile
+class VendorProfile(Base):
+    """Extended profile for vendor users."""
+    
+    __tablename__ = "vendor_profiles"
+    
+    id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    
+    shop_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    categories: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String(100)), nullable=True)
+    
+    verification_status: Mapped[VerificationStatus] = mapped_column(
+        SQLEnum(VerificationStatus), default=VerificationStatus.PENDING
+    )
+    verified_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    
+    subscription_tier: Mapped[str] = mapped_column(String(20), default="free")
+    subscription_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    
+    total_sales: Mapped[int] = mapped_column(Integer, default=0)
+    rating: Mapped[float] = mapped_column(Float, default=0.0)
+
+# Buyer profile
+class BuyerProfile(Base):
+    """Extended profile for buyer users."""
+    
+    __tablename__ = "buyer_profiles"
+    
+    id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    
+    anonymous_alias: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    trust_score: Mapped[int] = mapped_column(Integer, default=50)
+\`\`\`
+
+## API Endpoints
+
+### Authentication
+\`\`\`
+POST /api/auth/register          # Register with PGP key
+POST /api/auth/challenge         # Get auth challenge
+POST /api/auth/verify            # Verify signed challenge
+POST /api/auth/logout            # End session
+\`\`\`
+
+### Opportunities (Marketplace)
+\`\`\`
+POST /api/leads                      # Create opportunity (buyer)
+GET  /api/leads                      # Browse opportunities (vendor)
+GET  /api/leads/{id}                 # View opportunity details
+PUT  /api/leads/{id}                 # Update opportunity (buyer)
+POST /api/leads/{id}/submit          # Submit for review (buyer)
+POST /api/leads/{id}/interest        # Express interest (vendor)
+GET  /api/leads/{id}/interests       # View interests (buyer)
+POST /api/leads/{id}/accept/{vendor_id}  # Accept vendor (buyer)
+\`\`\`
+
+### Vendor Listings
+\`\`\`
+POST /api/listings                   # Create listing (vendor)
+GET  /api/listings                   # Browse listings
+GET  /api/listings/{id}              # View listing details
+PUT  /api/listings/{id}              # Update listing (vendor)
+POST /api/listings/{id}/submit       # Submit for review (vendor)
+\`\`\`
+
+### Messages
+\`\`\`
+GET  /api/messages/conversations     # List conversations
+GET  /api/messages/{conversation_id} # Get messages
+POST /api/messages/{conversation_id} # Send encrypted message
+\`\`\`
+
+### Subscriptions
+\`\`\`
+GET  /api/subscriptions/plans        # View subscription plans
+POST /api/subscriptions/subscribe    # Subscribe to plan
+GET  /api/subscriptions/current      # Get current subscription
+POST /api/subscriptions/cancel       # Cancel subscription
+\`\`\`
+
+### Admin
+\`\`\`
+GET  /api/admin/leads/pending        # Pending opportunities
+POST /api/admin/leads/{id}/approve   # Approve opportunity
+POST /api/admin/leads/{id}/reject    # Reject opportunity
+GET  /api/admin/vendors/pending      # Pending vendor verifications
+POST /api/admin/vendors/{id}/verify  # Verify vendor
+POST /api/admin/vendors/{id}/reject  # Reject vendor
+GET  /api/admin/users                # List all users
+POST /api/admin/users/{id}/suspend   # Suspend user
+\`\`\`
+
+## Security Features
+
+1. **PGP Authentication** - No passwords, cryptographic identity only
+2. **End-to-End Encryption** - Messages encrypted client-side
+3. **Tor Hidden Service** - .onion address for anonymity
+4. **Rate Limiting** - Redis-backed with role-based limits
+5. **CSRF Protection** - Token-based form protection
+6. **Input Validation** - Strict validation on all inputs
+7. **SQL Injection Prevention** - Parameterized queries via SQLAlchemy
+8. **XSS Prevention** - Jinja2 auto-escaping
+
+## Monero Integration
+
+- **Single-use addresses** - Each transaction gets unique subaddress
+- **Payment monitoring** - Celery workers check for confirmations
+- **Price oracle** - Multi-source XMR/USD conversion
+- **Escrow support** - Funds held until transaction complete
+
+## Deployment
+
+The platform is deployed to a dedicated server with:
+- Tor hidden service configuration
+- PostgreSQL database
+- Redis cache
+- Celery workers
+- Monero daemon (optional, can use remote node)
+- Systemd service management
+
+See DEPLOY_NOW.md for complete deployment instructions.
+\`\`\`
+
+## Technology Stack Summary
+| Layer	| Technology	| Purpose	|
+|---|---|---|
+| Runtime	| Python 3.11+	| Core language with asyncio	|
+| Framework	| FastAPI 0.109+	| Async web framework	|
+| Server	| Uvicorn + uvloop	| High-performance ASGI	|
+| Database	| PostgreSQL 16	| Primary data store	|
+| Cache	| Redis 7.2	| Sessions, rate limits, queues	|
+| Task Queue	| Celery	| Background job processing	|
+| ORM	| SQLAlchemy 2.0	| Async database access	|
+| Migrations	| Alembic	| Schema versioning	|
+| Templates	| Jinja2	| Server-side rendering	|
+| Crypto	| python-gnupg	| PGP operations	|
+| Payments	| monero-python	| XMR integration	|
+| Proxy	| Caddy 2.7	| Reverse proxy, TLS	|
+| Anonymity	| Tor 0.4.8+	| Onion service	|
+| OS	| Debian 12	| Hardened server	|
+
+## Core Features Breakdown
+
 1. Authentication (ARCHITECT Protocol)
 PGP-based challenge-response authentication
 No passwords stored - cryptographic proof of identity
 Session binding to Tor circuits
 Rate limiting and progressive lockout
-2. Lead System
-Sources submit anonymized leads (category, scope, evidence types)
+
+2. Opportunity System (Marketplace)
+Buyers submit opportunity requests (category, scope, requirements)
 Admin moderation before publication
-Journalists browse and express interest
-Source selects journalist for secure communication
+Vendors browse and express interest
+Buyer selects vendor for secure communication
+
 3. Secure Messaging
 End-to-end PGP encryption
 Messages encrypted to recipient's public key
 Platform cannot read message contents
-Conversation tied to lead context
-4. Support Listings
-Sources create public support profiles
-Configurable donation tiers with perks
-Single-use XMR addresses per contribution
-Anonymous supporter wall
+Conversation tied to opportunity context
+
+4. Vendor Listings
+Vendors create public profiles with services
+Configurable pricing tiers
+Single-use XMR addresses per transaction
+Anonymous review system
 Progress tracking and updates
+
 5. Subscription System
-Journalist tiers: Free, Freelancer (
-50
-/
-m
-o
-)
-,
-O
-u
-t
-l
-e
-t
-(
-50/mo),Outlet(500/mo), Enterprise ($2000/mo)
-XMR and fiat (Stripe) payment options
-Auto-renewal with PGP notifications
-6. Admin Moderation
-Lead review queue
-Journalist verification
-Listing approval
-User management and suspension
-Build Order & Dependencies
+Vendor tiers: Free, Basic ($50/mo), Pro ($150/mo), Enterprise ($500/mo)
+Each tier unlocks additional features
+XMR-only payments via integrated addresses
+Automatic renewal tracking
+
+## User Roles
+
+| Role | Description | Capabilities |
+|------|-------------|--------------|
+| BUYER | Seekers looking for goods/services | Post opportunities, browse vendors, make payments |
+| VENDOR | Providers of goods/services | Respond to opportunities, create listings, receive payments |
+| ADMIN | Platform moderators | Review content, verify vendors, manage users |
+
+## Database Schema
+
+\`\`\`python
+# User roles
+class UserRole(str, enum.Enum):
+    BUYER = "buyer"
+    VENDOR = "vendor"
+    ADMIN = "admin"
+
+# Vendor verification status
+class VerificationStatus(str, enum.Enum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
+    SUSPENDED = "suspended"
+
+# Vendor profile
+class VendorProfile(Base):
+    """Extended profile for vendor users."""
+    
+    __tablename__ = "vendor_profiles"
+    
+    id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    
+    shop_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    categories: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String(100)), nullable=True)
+    
+    verification_status: Mapped[VerificationStatus] = mapped_column(
+        SQLEnum(VerificationStatus), default=VerificationStatus.PENDING
+    )
+    verified_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    
+    subscription_tier: Mapped[str] = mapped_column(String(20), default="free")
+    subscription_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    
+    total_sales: Mapped[int] = mapped_column(Integer, default=0)
+    rating: Mapped[float] = mapped_column(Float, default=0.0)
+
+# Buyer profile
+class BuyerProfile(Base):
+    """Extended profile for buyer users."""
+    
+    __tablename__ = "buyer_profiles"
+    
+    id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    
+    anonymous_alias: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    trust_score: Mapped[int] = mapped_column(Integer, default=50)
+\`\`\`
+
+## API Endpoints
+
+### Authentication
+\`\`\`
+POST /api/auth/register          # Register with PGP key
+POST /api/auth/challenge         # Get auth challenge
+POST /api/auth/verify            # Verify signed challenge
+POST /api/auth/logout            # End session
+\`\`\`
+
+### Opportunities (Marketplace)
+\`\`\`
+POST /api/leads                      # Create opportunity (buyer)
+GET  /api/leads                      # Browse opportunities (vendor)
+GET  /api/leads/{id}                 # View opportunity details
+PUT  /api/leads/{id}                 # Update opportunity (buyer)
+POST /api/leads/{id}/submit          # Submit for review (buyer)
+POST /api/leads/{id}/interest        # Express interest (vendor)
+GET  /api/leads/{id}/interests       # View interests (buyer)
+POST /api/leads/{id}/accept/{vendor_id}  # Accept vendor (buyer)
+\`\`\`
+
+### Vendor Listings
+\`\`\`
+POST /api/listings                   # Create listing (vendor)
+GET  /api/listings                   # Browse listings
+GET  /api/listings/{id}              # View listing details
+PUT  /api/listings/{id}              # Update listing (vendor)
+POST /api/listings/{id}/submit       # Submit for review (vendor)
+\`\`\`
+
+### Messages
+\`\`\`
+GET  /api/messages/conversations     # List conversations
+GET  /api/messages/{conversation_id} # Get messages
+POST /api/messages/{conversation_id} # Send encrypted message
+\`\`\`
+
+### Subscriptions
+\`\`\`
+GET  /api/subscriptions/plans        # View subscription plans
+POST /api/subscriptions/subscribe    # Subscribe to plan
+GET  /api/subscriptions/current      # Get current subscription
+POST /api/subscriptions/cancel       # Cancel subscription
+\`\`\`
+
+### Admin
+\`\`\`
+GET  /api/admin/leads/pending        # Pending opportunities
+POST /api/admin/leads/{id}/approve   # Approve opportunity
+POST /api/admin/leads/{id}/reject    # Reject opportunity
+GET  /api/admin/vendors/pending      # Pending vendor verifications
+POST /api/admin/vendors/{id}/verify  # Verify vendor
+POST /api/admin/vendors/{id}/reject  # Reject vendor
+GET  /api/admin/users                # List all users
+POST /api/admin/users/{id}/suspend   # Suspend user
+\`\`\`
+
+## Security Features
+
+1. **PGP Authentication** - No passwords, cryptographic identity only
+2. **End-to-End Encryption** - Messages encrypted client-side
+3. **Tor Hidden Service** - .onion address for anonymity
+4. **Rate Limiting** - Redis-backed with role-based limits
+5. **CSRF Protection** - Token-based form protection
+6. **Input Validation** - Strict validation on all inputs
+7. **SQL Injection Prevention** - Parameterized queries via SQLAlchemy
+8. **XSS Prevention** - Jinja2 auto-escaping
+
+## Monero Integration
+
+- **Single-use addresses** - Each transaction gets unique subaddress
+- **Payment monitoring** - Celery workers check for confirmations
+- **Price oracle** - Multi-source XMR/USD conversion
+- **Escrow support** - Funds held until transaction complete
+
+## Deployment
+
+The platform is deployed to a dedicated server with:
+- Tor hidden service configuration
+- PostgreSQL database
+- Redis cache
+- Celery workers
+- Monero daemon (optional, can use remote node)
+- Systemd service management
+
+See DEPLOY_NOW.md for complete deployment instructions.
+\`\`\`
+| Layer	| Technology	| Purpose	|
+|---|---|---|
+| Runtime	| Python 3.11+	| Core language with asyncio	|
+| Framework	| FastAPI 0.109+	| Async web framework	|
+| Server	| Uvicorn + uvloop	| High-performance ASGI	|
+| Database	| PostgreSQL 16	| Primary data store	|
+| Cache	| Redis 7.2	| Sessions, rate limits, queues	|
+| Task Queue	| Celery	| Background job processing	|
+| ORM	| SQLAlchemy 2.0	| Async database access	|
+| Migrations	| Alembic	| Schema versioning	|
+| Templates	| Jinja2	| Server-side rendering	|
+| Crypto	| python-gnupg	| PGP operations	|
+| Payments	| monero-python	| XMR integration	|
+| Proxy	| Caddy 2.7	| Reverse proxy, TLS	|
+| Anonymity	| Tor 0.4.8+	| Onion service	|
+| OS	| Debian 12	| Hardened server	|
+
+## Core Features Breakdown
+
+1. Authentication (ARCHITECT Protocol)
+PGP-based challenge-response authentication
+No passwords stored - cryptographic proof of identity
+Session binding to Tor circuits
+Rate limiting and progressive lockout
+
+2. Opportunity System (Marketplace)
+Buyers submit opportunity requests (category, scope, requirements)
+Admin moderation before publication
+Vendors browse and express interest
+Buyer selects vendor for secure communication
+
+3. Secure Messaging
+End-to-end PGP encryption
+Messages encrypted to recipient's public key
+Platform cannot read message contents
+Conversation tied to opportunity context
+
+4. Vendor Listings
+Vendors create public profiles with services
+Configurable pricing tiers
+Single-use XMR addresses per transaction
+Anonymous review system
+Progress tracking and updates
+
+5. Subscription System
+Vendor tiers: Free, Basic ($50/mo), Pro ($150/mo), Enterprise ($500/mo)
+Each tier unlocks additional features
+XMR-only payments via integrated addresses
+Automatic renewal tracking
+
+## User Roles
+
+| Role | Description | Capabilities |
+|------|-------------|--------------|
+| BUYER | Seekers looking for goods/services | Post opportunities, browse vendors, make payments |
+| VENDOR | Providers of goods/services | Respond to opportunities, create listings, receive payments |
+| ADMIN | Platform moderators | Review content, verify vendors, manage users |
+
+## Database Schema
+
+\`\`\`python
+# User roles
+class UserRole(str, enum.Enum):
+    BUYER = "buyer"
+    VENDOR = "vendor"
+    ADMIN = "admin"
+
+# Vendor verification status
+class VerificationStatus(str, enum.Enum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
+    SUSPENDED = "suspended"
+
+# Vendor profile
+class VendorProfile(Base):
+    """Extended profile for vendor users."""
+    
+    __tablename__ = "vendor_profiles"
+    
+    id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    
+    shop_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    categories: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String(100)), nullable=True)
+    
+    verification_status: Mapped[VerificationStatus] = mapped_column(
+        SQLEnum(VerificationStatus), default=VerificationStatus.PENDING
+    )
+    verified_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    
+    subscription_tier: Mapped[str] = mapped_column(String(20), default="free")
+    subscription_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    
+    total_sales: Mapped[int] = mapped_column(Integer, default=0)
+    rating: Mapped[float] = mapped_column(Float, default=0.0)
+
+# Buyer profile
+class BuyerProfile(Base):
+    """Extended profile for buyer users."""
+    
+    __tablename__ = "buyer_profiles"
+    
+    id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    
+    anonymous_alias: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    trust_score: Mapped[int] = mapped_column(Integer, default=50)
+\`\`\`
+
+## API Endpoints
+
+### Authentication
+\`\`\`
+POST /api/auth/register          # Register with PGP key
+POST /api/auth/challenge         # Get auth challenge
+POST /api/auth/verify            # Verify signed challenge
+POST /api/auth/logout            # End session
+\`\`\`
+
+### Opportunities (Marketplace)
+\`\`\`
+POST /api/leads                      # Create opportunity (buyer)
+GET  /api/leads                      # Browse opportunities (vendor)
+GET  /api/leads/{id}                 # View opportunity details
+PUT  /api/leads/{id}                 # Update opportunity (buyer)
+POST /api/leads/{id}/submit          # Submit for review (buyer)
+POST /api/leads/{id}/interest        # Express interest (vendor)
+GET  /api/leads/{id}/interests       # View interests (buyer)
+POST /api/leads/{id}/accept/{vendor_id}  # Accept vendor (buyer)
+\`\`\`
+
+### Vendor Listings
+\`\`\`
+POST /api/listings                   # Create listing (vendor)
+GET  /api/listings                   # Browse listings
+GET  /api/listings/{id}              # View listing details
+PUT  /api/listings/{id}              # Update listing (vendor)
+POST /api/listings/{id}/submit       # Submit for review (vendor)
+\`\`\`
+
+### Messages
+\`\`\`
+GET  /api/messages/conversations     # List conversations
+GET  /api/messages/{conversation_id} # Get messages
+POST /api/messages/{conversation_id} # Send encrypted message
+\`\`\`
+
+### Subscriptions
+\`\`\`
+GET  /api/subscriptions/plans        # View subscription plans
+POST /api/subscriptions/subscribe    # Subscribe to plan
+GET  /api/subscriptions/current      # Get current subscription
+POST /api/subscriptions/cancel       # Cancel subscription
+\`\`\`
+
+### Admin
+\`\`\`
+GET  /api/admin/leads/pending        # Pending opportunities
+POST /api/admin/leads/{id}/approve   # Approve opportunity
+POST /api/admin/leads/{id}/reject    # Reject opportunity
+GET  /api/admin/vendors/pending      # Pending vendor verifications
+POST /api/admin/vendors/{id}/verify  # Verify vendor
+POST /api/admin/vendors/{id}/reject  # Reject vendor
+GET  /api/admin/users                # List all users
+POST /api/admin/users/{id}/suspend   # Suspend user
+\`\`\`
+
+## Security Features
+
+1. **PGP Authentication** - No passwords, cryptographic identity only
+2. **End-to-End Encryption** - Messages encrypted client-side
+3. **Tor Hidden Service** - .onion address for anonymity
+4. **Rate Limiting** - Redis-backed with role-based limits
+5. **CSRF Protection** - Token-based form protection
+6. **Input Validation** - Strict validation on all inputs
+7. **SQL Injection Prevention** - Parameterized queries via SQLAlchemy
+8. **XSS Prevention** - Jinja2 auto-escaping
+
+## Monero Integration
+
+- **Single-use addresses** - Each transaction gets unique subaddress
+- **Payment monitoring** - Celery workers check for confirmations
+- **Price oracle** - Multi-source XMR/USD conversion
+- **Escrow support** - Funds held until transaction complete
+
+## Deployment
+
+The platform is deployed to a dedicated server with:
+- Tor hidden service configuration
+- PostgreSQL database
+- Redis cache
+- Celery workers
+- Monero daemon (optional, can use remote node)
+- Systemd service management
+
+See DEPLOY_NOW.md for complete deployment instructions.
+\`\`\`
+
+## Build Order & Dependencies
+
 Phase 1: Foundation (Week 1-2)
 ├── Project scaffolding
 ├── Database schema & migrations
@@ -169,133 +658,108 @@ Phase 2: Authentication (Week 3-4)
 └── Role-based access control
 
 Phase 3: Core Features (Week 5-7)
-├── Lead submission & management
-├── Lead browsing for journalists
+├── Opportunity submission & management (Buyer)
+├── Opportunity browsing for vendors
 ├── Interest expression & matching
 ├── Secure messaging system
 └── Admin moderation tools
 
-Phase 4: Payments (Week 8-9)
-├── Monero node setup
-├── Wallet RPC integration
-├── Single-use address generation
-├── Payment monitoring worker
-├── Subscription management
-
-Phase 5: Support Listings (Week 10-11)
+Phase 4: Vendor Listings & Payments (Week 8-10)
 ├── Listing CRUD operations
 ├── Tier management
 ├── Contribution flow
-├── Supporter wall
-├── Listing updates
+├── Vendor payment integration (Monero)
+├── Payment monitoring worker
 
-Phase 6: Polish & Security (Week 12-13)
+Phase 5: Subscriptions & Polish (Week 11-12)
+├── Vendor subscription system
 ├── Security audit
 ├── Performance optimization
-├── Error handling
-├── Logging & monitoring
+├── Error handling & Logging
 ├── Documentation
 
-Phase 7: Deployment (Week 14)
+Phase 6: Deployment (Week 13)
 ├── Infrastructure provisioning
 ├── Tor onion service setup
 ├── SSL/TLS configuration
 ├── Backup procedures
 └── Launch checklist
-API Endpoints Summary
+## API Endpoints Summary
+
 Authentication
-POST /api/auth/register/challenge    # Initiate registration
-POST /api/auth/register/verify       # Complete registration
-POST /api/auth/login/challenge       # Initiate login
-POST /api/auth/login/verify          # Complete login
-POST /api/auth/logout                # End session
-GET  /api/auth/session               # Validate session
-Leads
-POST /api/leads                      # Create lead (source)
-GET  /api/leads                      # Browse leads (journalist)
-GET  /api/leads/{id}                 # Get lead detail
-PUT  /api/leads/{id}                 # Update lead (source)
-POST /api/leads/{id}/submit          # Submit for review (source)
-POST /api/leads/{id}/interest        # Express interest (journalist)
-GET  /api/leads/{id}/interests       # View interests (source)
-POST /api/leads/{id}/accept/{journalist_id}  # Accept journalist (source)
+POST /api/auth/register          # Register with PGP key
+POST /api/auth/challenge         # Get auth challenge
+POST /api/auth/verify            # Verify signed challenge
+POST /api/auth/logout            # End session
+GET  /api/auth/session             # Validate session
+
+Opportunities (Marketplace)
+POST /api/leads                      # Create opportunity (buyer)
+GET  /api/leads                      # Browse opportunities (vendor)
+GET  /api/leads/{id}                 # View opportunity details
+PUT  /api/leads/{id}                 # Update opportunity (buyer)
+POST /api/leads/{id}/submit          # Submit for review (buyer)
+POST /api/leads/{id}/interest        # Express interest (vendor)
+GET  /api/leads/{id}/interests       # View interests (buyer)
+POST /api/leads/{id}/accept/{vendor_id}  # Accept vendor (buyer)
+
+Vendor Listings
+POST /api/listings                   # Create listing (vendor)
+GET  /api/listings                   # Browse listings
+GET  /api/listings/{id}              # View listing details
+PUT  /api/listings/{id}              # Update listing (vendor)
+POST /api/listings/{id}/submit       # Submit for review (vendor)
+
 Messages
-GET  /api/conversations              # List conversations
-GET  /api/conversations/{id}         # Get conversation
-POST /api/conversations/{id}/messages # Send message
-GET  /api/conversations/{id}/messages # Get messages
-Support Listings
-POST /api/listings                   # Create listing (source)
-GET  /api/listings                   # Browse listings (public)
-GET  /api/listings/{slug}            # Get listing detail
-PUT  /api/listings/{id}              # Update listing (source)
-POST /api/listings/{id}/submit       # Submit for review
-POST /api/listings/{id}/tiers        # Add tier
-PUT  /api/listings/{id}/tiers/{tier_id}  # Update tier
-POST /api/listings/{slug}/contribute # Initiate contribution
-GET  /api/listings/{id}/supporters   # Get supporters
-POST /api/listings/{id}/updates      # Post update (source)
+GET  /api/messages/conversations     # List conversations
+GET  /api/messages/{conversation_id} # Get messages
+POST /api/messages/{conversation_id} # Send encrypted message
+
 Subscriptions
-GET  /api/subscriptions/plans        # Get subscription plans
-POST /api/subscriptions              # Create subscription
+GET  /api/subscriptions/plans        # View subscription plans
+POST /api/subscriptions/subscribe    # Subscribe to plan
 GET  /api/subscriptions/current      # Get current subscription
 POST /api/subscriptions/cancel       # Cancel subscription
+
 Admin
-GET  /api/admin/leads/pending        # Pending leads
-POST /api/admin/leads/{id}/approve   # Approve lead
-POST /api/admin/leads/{id}/reject    # Reject lead
-GET  /api/admin/journalists/pending  # Pending verifications
-POST /api/admin/journalists/{id}/verify  # Verify journalist
-GET  /api/admin/listings/pending     # Pending listings
-POST /api/admin/listings/{id}/approve # Approve listing
-GET  /api/admin/users                # User management
+GET  /api/admin/leads/pending        # Pending opportunities
+POST /api/admin/leads/{id}/approve   # Approve opportunity
+POST /api/admin/leads/{id}/reject    # Reject opportunity
+GET  /api/admin/vendors/pending      # Pending vendor verifications
+POST /api/admin/vendors/{id}/verify  # Verify vendor
+POST /api/admin/vendors/{id}/reject  # Reject vendor
+GET  /api/admin/users                # List all users
 POST /api/admin/users/{id}/suspend   # Suspend user
-Security Measures
-Category	Implementation
-Authentication	PGP challenge-response, no passwords
-Sessions	Cryptographic tokens, circuit binding, sliding expiry
-Encryption	E2E PGP for messages, TLS 1.3 in transit, LUKS at rest
-Rate Limiting	Per-user, per-circuit, per-endpoint limits
-Input Validation	Pydantic schemas, sanitization, length limits
-CSRF	SameSite cookies, origin validation
-XSS	Jinja2 auto-escaping, CSP headers
-SQL Injection	SQLAlchemy ORM, parameterized queries
-Privacy	No IP logging, Tor integration, anonymous payments
-Audit	Comprehensive logging (anonymized), tamper-evident
-Database Schema Summary
-Users & Auth
-├── users (id, username, role, pgp_fingerprint, pgp_public_key, ...)
-├── journalist_profiles (user_id, organization, verification_status, ...)
-├── source_profiles (user_id, anonymous_alias, trust_score, ...)
-├── auth_challenges (id, username, challenge_hash, attempts, ...)
-└── sessions (id, user_id, token_hash, circuit_hash, ...)
 
-Leads & Matching
-├── leads (id, source_id, title, category, summary, evidence_types, ...)
-└── lead_interests (id, lead_id, journalist_id, pitch, status, ...)
+## Security Features
 
-Messaging
-├── conversations (id, lead_id, source_id, journalist_id, ...)
-└── messages (id, conversation_id, sender_id, encrypted_content, ...)
+1. **PGP Authentication** - No passwords, cryptographic identity only
+2. **End-to-End Encryption** - Messages encrypted client-side
+3. **Tor Hidden Service** - .onion address for anonymity
+4. **Rate Limiting** - Redis-backed with role-based limits
+5. **CSRF Protection** - Token-based form protection
+6. **Input Validation** - Strict validation on all inputs
+7. **SQL Injection Prevention** - Parameterized queries via SQLAlchemy
+8. **XSS Prevention** - Jinja2 auto-escaping
 
-Support Listings
-├── support_listings (id, source_id, title, slug, category, story, ...)
-├── support_tiers (id, listing_id, name, amount_usd, perks, ...)
-├── support_contributions (id, listing_id, tier_id, amount_xmr_atomic, ...)
-├── supporter_wall (id, listing_id, display_name, tier_name, ...)
-└── listing_updates (id, listing_id, title, content, ...)
+## Monero Integration
 
-Payments
-├── deposits (id, user_id, address, payment_id, expected_amount, ...)
-└── subscriptions (id, user_id, tier, started_at, expires_at, ...)
+- **Single-use addresses** - Each transaction gets unique subaddress
+- **Payment monitoring** - Celery workers check for confirmations
+- **Price oracle** - Multi-source XMR/USD conversion
+- **Escrow support** - Funds held until transaction complete
 
-System
-├── audit_log (id, user_id, action, resource_type, ...)
-├── rate_limits (key, count, window_start, expires_at)
-└── encrypted_media (id, owner_id, storage_path, ...)
-COMPLETE IMPLEMENTATION PROMPT
-Below is a comprehensive, production-ready implementation of ARCHITECT // VAULT. This is the largest coherent codebase I can provide in a single response.
+## Deployment
 
+The platform is deployed to a dedicated server with:
+- Tor hidden service configuration
+- PostgreSQL database
+- Redis cache
+- Celery workers
+- Monero daemon (optional, can use remote node)
+- Systemd service management
+
+See DEPLOY_NOW.md for complete deployment instructions.
 # ============================================================================
 # ARCHITECT // VAULT - Complete Implementation
 # ============================================================================
@@ -515,6 +979,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 from typing import AsyncGenerator
 
+
 from app.config import settings
 
 
@@ -630,6 +1095,10 @@ from app.models.payment import (
     SubscriptionStatus,
 )
 
+# Add VendorProfile and BuyerProfile for the new marketplace model
+from app.models.user import VendorProfile, BuyerProfile
+
+
 __all__ = [
     "User",
     "UserRole",
@@ -638,6 +1107,8 @@ __all__ = [
     "VerificationStatus",
     "AuthChallenge",
     "Session",
+    "VendorProfile", # Added
+    "BuyerProfile",  # Added
     "Lead",
     "LeadStatus",
     "LeadCategory",
@@ -666,7 +1137,7 @@ __all__ = [
 # ============================================================================
 # FILE: app/models/user.py
 # ============================================================================
-from sqlalchemy import String, Text, Boolean, Integer, ForeignKey, Enum as SQLEnum
+from sqlalchemy import String, Text, Boolean, Integer, ForeignKey, Enum as SQLEnum, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 from datetime import datetime, timezone
@@ -678,9 +1149,11 @@ from app.database import Base
 
 
 class UserRole(str, enum.Enum):
-    SOURCE = "source"
-    JOURNALIST = "journalist"
+    BUYER = "buyer"      # New role for marketplace
+    VENDOR = "vendor"    # New role for marketplace
     ADMIN = "admin"
+    # SOURCE = "source"  # Removed
+    # JOURNALIST = "journalist" # Removed
 
 
 class VerificationStatus(str, enum.Enum):
@@ -705,66 +1178,63 @@ class User(Base):
     threat_score: Mapped[int] = mapped_column(Integer, default=0)
     
     # Relationships
-    journalist_profile: Mapped[Optional["JournalistProfile"]] = relationship(
+    vendor_profile: Mapped[Optional["VendorProfile"]] = relationship(
         back_populates="user", uselist=False, lazy="selectin"
     )
-    source_profile: Mapped[Optional["SourceProfile"]] = relationship(
+    buyer_profile: Mapped[Optional["BuyerProfile"]] = relationship(
         back_populates="user", uselist=False, lazy="selectin"
     )
     sessions: Mapped[List["Session"]] = relationship(back_populates="user")
+    
+    # For Admin view: link to verifier user if applicable
+    verified_by_user: Mapped[Optional["User"]] = relationship(lazy="selectin") # For linking admin verifier
     
     def __repr__(self) -> str:
         return f"<User {self.username} ({self.role.value})>"
 
 
-class JournalistProfile(Base):
-    """Extended profile for journalist users."""
+class VendorProfile(Base):
+    """Extended profile for vendor users."""
     
-    __tablename__ = "journalist_profiles"
+    __tablename__ = "vendor_profiles"
     
     id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
     
-    organization: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    organization_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    beat: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String(100)), nullable=True)
-    portfolio_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    shop_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    categories: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String(100)), nullable=True)
     
     verification_status: Mapped[VerificationStatus] = mapped_column(
         SQLEnum(VerificationStatus), default=VerificationStatus.PENDING
     )
     verified_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
-    verified_by: Mapped[Optional[UUID]] = mapped_column(
-        ForeignKey("users.id"), nullable=True
-    )
+    verified_by: Mapped[Optional[UUID]] = mapped_column(ForeignKey("users.id"), nullable=True) # Admin who verified
+    verification_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
-    subscription_tier: Mapped[str] = mapped_column(String(20), default="free")
+    # Subscription info
+    subscription_tier: Mapped[str] = mapped_column(String(20), default="free") # e.g., "free", "basic", "pro"
     subscription_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     
+    total_sales: Mapped[int] = mapped_column(Integer, default=0) # Count of successful transactions
+    rating: Mapped[float] = mapped_column(Float, default=0.0) # Average rating from buyers
+    
     # Relationships
-    user: Mapped["User"] = relationship(back_populates="journalist_profile")
-    
-    @property
-    def is_subscribed(self) -> bool:
-        if self.subscription_tier == "free":
-            return True
-        if not self.subscription_expires_at:
-            return False
-        return self.subscription_expires_at > datetime.now(timezone.utc)
+    user: Mapped["User"] = relationship(back_populates="vendor_profile")
+    verifier: Mapped["User"] = relationship(lazy="selectin", foreign_keys=[verified_by]) # Link to admin user
 
 
-class SourceProfile(Base):
-    """Extended profile for source users."""
+class BuyerProfile(Base):
+    """Extended profile for buyer users."""
     
-    __tablename__ = "source_profiles"
+    __tablename__ = "buyer_profiles"
     
     id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
     
     anonymous_alias: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
-    industry_hint: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    trust_score: Mapped[int] = mapped_column(Integer, default=50)
+    trust_score: Mapped[int] = mapped_column(Integer, default=50) # Calculated trust score
     
     # Relationships
-    user: Mapped["User"] = relationship(back_populates="source_profile")
+    user: Mapped["User"] = relationship(back_populates="buyer_profile")
 
 
 class AuthChallenge(Base):
@@ -808,18 +1278,20 @@ from uuid import UUID
 import enum
 
 from app.database import Base
+from app.models.user import UserRole # Import necessary roles
 
 
 class LeadStatus(str, enum.Enum):
-    DRAFT = "draft"
-    SUBMITTED = "submitted"
-    UNDER_REVIEW = "under_review"
-    PUBLISHED = "published"
-    MATCHED = "matched"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    WITHDRAWN = "withdrawn"
-    EXPIRED = "expired"
+    # Roles relevant to opportunities/listings
+    DRAFT = "draft"           # For buyers creating opportunities
+    SUBMITTED = "submitted"     # Buyer submitted opportunity for review
+    PUBLISHED = "published"     # Opportunity is live for vendors
+    MATCHED = "matched"         # Buyer accepted a vendor's interest
+    IN_PROGRESS = "in_progress" # Transaction between buyer and vendor
+    COMPLETED = "completed"     # Transaction finished successfully
+    FAILED = "failed"           # Transaction failed
+    WITHDRAWN = "withdrawn"     # Opportunity or vendor interest withdrawn
+    EXPIRED = "expired"         # Opportunity/listing expired
 
 
 class LeadCategory(str, enum.Enum):
@@ -852,22 +1324,22 @@ class InterestStatus(str, enum.Enum):
 
 
 class Lead(Base):
-    """Whistleblower lead submissions."""
+    """Buyer opportunity requests."""
     
-    __tablename__ = "leads"
+    __tablename__ = "opportunities" # Renamed from 'leads' to 'opportunities'
     
-    source_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    buyer_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     
     # Public information
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     category: Mapped[LeadCategory] = mapped_column(SQLEnum(LeadCategory), nullable=False)
     subcategory: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    summary: Mapped[str] = mapped_column(Text, nullable=False)
-    evidence_types: Mapped[List[str]] = mapped_column(ARRAY(String(50)), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False) # Renamed from 'summary'
+    requirements: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String(50)), nullable=True) # Renamed from 'evidence_types'
     geographic_scope: Mapped[Optional[List[str]]] = mapped_column(
         ARRAY(String(100)), nullable=True
     )
-    time_sensitivity: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    budget_usd: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # Added budget field
     
     # Status & workflow
     status: Mapped[LeadStatus] = mapped_column(
@@ -883,28 +1355,33 @@ class Lead(Base):
     review_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Matching
-    matched_journalist_id: Mapped[Optional[UUID]] = mapped_column(
+    accepted_vendor_id: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey("users.id"), nullable=True
     )
     matched_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     
     # Completion
-    publication_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    completion_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # Notes from buyer/vendor
     completed_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     
     expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     
     # Relationships
-    interests: Mapped[List["LeadInterest"]] = relationship(back_populates="lead")
+    interests: Mapped[List["OpportunityInterest"]] = relationship(back_populates="opportunity")
+    
+    # Added relationships for admin view
+    reviewer: Mapped["User"] = relationship(lazy="selectin", foreign_keys=[reviewed_by])
+    buyer: Mapped["User"] = relationship(lazy="selectin", foreign_keys=[buyer_id])
+    vendor: Mapped["User"] = relationship(lazy="selectin", foreign_keys=[accepted_vendor_id])
 
 
-class LeadInterest(Base):
-    """Journalist interest in leads."""
+class OpportunityInterest(Base):
+    """Vendor interest in buyer opportunities."""
     
-    __tablename__ = "lead_interests"
+    __tablename__ = "opportunity_interests"
     
-    lead_id: Mapped[UUID] = mapped_column(ForeignKey("leads.id"), nullable=False)
-    journalist_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    opportunity_id: Mapped[UUID] = mapped_column(ForeignKey("opportunities.id"), nullable=False) # Updated FK
+    vendor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     
     pitch: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[InterestStatus] = mapped_column(
@@ -913,31 +1390,34 @@ class LeadInterest(Base):
     responded_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     
     # Relationships
-    lead: Mapped["Lead"] = relationship(back_populates="interests")
+    opportunity: Mapped["Lead"] = relationship(back_populates="interests") # Updated relationship name
+    vendor: Mapped["User"] = relationship(lazy="selectin") # Link to vendor user
 
 
 # ============================================================================
 # FILE: app/models/message.py
 # ============================================================================
-from sqlalchemy import String, Text, ForeignKey
+from sqlalchemy import String, Text, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
+import enum
 
 from app.database import Base
+from app.models.user import User # Import User for sender/recipient
 
 
 class Conversation(Base):
-    """Secure conversation between source and journalist."""
+    """Secure conversation between buyer and vendor."""
     
     __tablename__ = "conversations"
     
-    lead_id: Mapped[Optional[UUID]] = mapped_column(
-        ForeignKey("leads.id"), nullable=True
+    opportunity_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey("opportunities.id"), nullable=True # Updated FK
     )
-    source_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    journalist_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    buyer_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    vendor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     
     last_message_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     
@@ -948,6 +1428,11 @@ class Conversation(Base):
     
     # Relationships
     messages: Mapped[List["Message"]] = relationship(back_populates="conversation")
+    
+    # Added relationships for easier access
+    buyer: Mapped["User"] = relationship(lazy="selectin", foreign_keys=[buyer_id])
+    vendor: Mapped["User"] = relationship(lazy="selectin", foreign_keys=[vendor_id])
+    opportunity: Mapped["Lead"] = relationship(lazy="selectin") # Updated relationship name
 
 
 class Message(Base):
@@ -968,6 +1453,7 @@ class Message(Base):
     
     # Relationships
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
+    sender: Mapped["User"] = relationship(lazy="selectin") # Link to sender user
 
 
 # ============================================================================
@@ -983,6 +1469,8 @@ from uuid import UUID
 import enum
 
 from app.database import Base
+from app.models.user import User # For relationships
+from app.models.payment import Deposit # For contributions
 
 
 class ListingStatus(str, enum.Enum):
@@ -995,14 +1483,15 @@ class ListingStatus(str, enum.Enum):
 
 
 class ListingCategory(str, enum.Enum):
-    WHISTLEBLOWER_PROTECTION = "whistleblower_protection"
-    LEGAL_DEFENSE = "legal_defense"
-    RELOCATION_SAFETY = "relocation_safety"
-    FAMILY_SUPPORT = "family_support"
+    # Changed categories to be more marketplace-oriented
+    DIGITAL_GOODS = "digital_goods"
+    PHYSICAL_GOODS = "physical_goods"
+    SERVICES = "services"
+    CONSULTING = "consulting"
+    SOFTWARE_DEV = "software_dev"
     SECURE_INFRASTRUCTURE = "secure_infrastructure"
-    JOURNALISM_FUNDING = "journalism_funding"
     RESEARCH_INVESTIGATION = "research_investigation"
-    GENERAL_SUPPORT = "general_support"
+    GENERAL_SUPPORT = "general_support" # Keep for general needs
 
 
 class ContributionStatus(str, enum.Enum):
@@ -1014,11 +1503,11 @@ class ContributionStatus(str, enum.Enum):
 
 
 class SupportListing(Base):
-    """Public support listing for sources."""
+    """Vendor listings for services/goods."""
     
-    __tablename__ = "support_listings"
+    __tablename__ = "vendor_listings" # Renamed from 'support_listings'
     
-    source_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    vendor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     
     # Public information
     title: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -1027,14 +1516,15 @@ class SupportListing(Base):
         SQLEnum(ListingCategory), nullable=False
     )
     headline: Mapped[str] = mapped_column(String(300), nullable=False)
-    story: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False) # Renamed from 'story'
     
     disclosure_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     risk_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
-    # Goals
-    funding_goal_usd: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    funding_deadline: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    # Goals/Pricing (for vendors)
+    price_usd_cents: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # Fixed price or base for tiers
+    # funding_goal_usd: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # Removed, replaced by tiers/fixed price
+    # funding_deadline: Mapped[Optional[datetime]] = mapped_column(nullable=True) # Removed, replaced by subscription/fixed price
     
     # Verification
     verified_by_admin: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -1048,29 +1538,32 @@ class SupportListing(Base):
     status: Mapped[ListingStatus] = mapped_column(
         SQLEnum(ListingStatus), default=ListingStatus.DRAFT
     )
-    total_raised_atomic: Mapped[int] = mapped_column(BigInteger, default=0)
-    supporter_count: Mapped[int] = mapped_column(Integer, default=0)
+    total_raised_atomic: Mapped[int] = mapped_column(BigInteger, default=0) # Total XMR value from transactions
+    supporter_count: Mapped[int] = mapped_column(Integer, default=0) # Count of transactions/buyers
     view_count: Mapped[int] = mapped_column(Integer, default=0)
     
     published_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     closes_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     
     # Relationships
-    tiers: Mapped[List["SupportTier"]] = relationship(back_populates="listing")
-    contributions: Mapped[List["SupportContribution"]] = relationship(
+    tiers: Mapped[List["VendorTier"]] = relationship(back_populates="listing") # Renamed from SupportTier
+    transactions: Mapped[List["Transaction"]] = relationship( # Renamed from SupportContribution
         back_populates="listing"
     )
-    supporters: Mapped[List["SupporterWall"]] = relationship(back_populates="listing")
+    reviews: Mapped[List["Review"]] = relationship(back_populates="listing") # Added Reviews
     updates: Mapped[List["ListingUpdate"]] = relationship(back_populates="listing")
-
-
-class SupportTier(Base):
-    """Configurable support tier for a listing."""
     
-    __tablename__ = "support_tiers"
+    # Added relationships for admin view
+    verifier: Mapped["User"] = relationship(lazy="selectin", foreign_keys=[verified_by])
+
+
+class VendorTier(Base):
+    """Configurable tiers for vendor services/goods."""
+    
+    __tablename__ = "vendor_tiers"
     
     listing_id: Mapped[UUID] = mapped_column(
-        ForeignKey("support_listings.id"), nullable=False
+        ForeignKey("vendor_listings.id"), nullable=False # Updated FK
     )
     
     name: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -1080,46 +1573,49 @@ class SupportTier(Base):
     perks: Mapped[Optional[List]] = mapped_column(JSONB, default=list)
     is_highlighted: Mapped[bool] = mapped_column(Boolean, default=False)
     
-    max_supporters: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    current_supporters: Mapped[int] = mapped_column(Integer, default=0)
+    max_purchasers: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # Renamed from max_supporters
+    current_purchasers: Mapped[int] = mapped_column(Integer, default=0) # Renamed from current_supporters
     
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
     # Relationships
-    listing: Mapped["SupportListing"] = relationship(back_populates="tiers")
+    listing: Mapped["SupportListing"] = relationship(back_populates="tiers") # Updated relationship name
     
     @property
     def is_available(self) -> bool:
-        if not self.max_supporters:
+        if not self.max_purchasers:
             return True
-        return self.current_supporters < self.max_supporters
+        return self.current_purchasers < self.max_purchasers
     
     @property
     def spots_remaining(self) -> Optional[int]:
-        if not self.max_supporters:
+        if not self.max_purchasers:
             return None
-        return self.max_supporters - self.current_supporters
+        return self.max_purchasers - self.current_purchasers
 
 
-class SupportContribution(Base):
-    """Individual contribution to a listing."""
+class Transaction(Base):
+    """Individual transaction for a vendor listing."""
     
-    __tablename__ = "support_contributions"
+    __tablename__ = "transactions"
     
     listing_id: Mapped[UUID] = mapped_column(
-        ForeignKey("support_listings.id"), nullable=False
+        ForeignKey("vendor_listings.id"), nullable=False # Updated FK
     )
     tier_id: Mapped[Optional[UUID]] = mapped_column(
-        ForeignKey("support_tiers.id"), nullable=True
+        ForeignKey("vendor_tiers.id"), nullable=True # Updated FK
     )
     
-    # Supporter info
-    supporter_user_id: Mapped[Optional[UUID]] = mapped_column(
+    # Buyer info
+    buyer_user_id: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey("users.id"), nullable=True
     )
-    supporter_alias: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    is_anonymous: Mapped[bool] = mapped_column(Boolean, default=True)
+    buyer_alias: Mapped[Optional[str]] = mapped_column(String(64), nullable=True) # Alias if buyer is anonymous
+    is_anonymous_buyer: Mapped[bool] = mapped_column(Boolean, default=True) # Track buyer anonymity preference
+    
+    # Vendor info (for context)
+    vendor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     
     # Payment
     amount_usd_cents: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -1128,12 +1624,12 @@ class SupportContribution(Base):
     
     deposit_id: Mapped[UUID] = mapped_column(ForeignKey("deposits.id"), nullable=False)
     
-    # Message
+    # Message (optional)
     encrypted_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     message_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     
     # Status
-    status: Mapped[ContributionStatus] = mapped_column(
+    status: Mapped[ContributionStatus] = mapped_column( # Reusing ContributionStatus enum
         SQLEnum(ContributionStatus), default=ContributionStatus.PENDING
     )
     confirmed_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
@@ -1141,64 +1637,71 @@ class SupportContribution(Base):
     tx_confirmations: Mapped[int] = mapped_column(Integer, default=0)
     
     # Relationships
-    listing: Mapped["SupportListing"] = relationship(back_populates="contributions")
+    listing: Mapped["SupportListing"] = relationship(back_populates="transactions") # Updated relationship name
+    tier: Mapped["VendorTier"] = relationship(lazy="selectin") # Updated relationship name
+    deposit: Mapped["Deposit"] = relationship(lazy="selectin") # Link to deposit
 
 
-class SupporterWall(Base):
-    """Public supporter recognition."""
+class Review(Base):
+    """Reviews left by buyers for vendors."""
     
-    __tablename__ = "supporter_wall"
+    __tablename__ = "reviews"
     
     listing_id: Mapped[UUID] = mapped_column(
-        ForeignKey("support_listings.id"), nullable=False
+        ForeignKey("vendor_listings.id"), nullable=False # Updated FK
     )
-    contribution_id: Mapped[UUID] = mapped_column(
-        ForeignKey("support_contributions.id"), unique=True, nullable=False
+    transaction_id: Mapped[UUID] = mapped_column(
+        ForeignKey("transactions.id"), unique=True, nullable=False # Updated FK
     )
     
-    display_name: Mapped[str] = mapped_column(String(64), nullable=False)
-    tier_name: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    amount_display: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    show_amount: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Reviewer info
+    reviewer_user_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+    reviewer_alias: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     
-    public_message: Mapped[Optional[str]] = mapped_column(String(280), nullable=True)
-    is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
+    rating: Mapped[int] = mapped_column(Integer, nullable=False) # 1-5 stars
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    is_anonymous: Mapped[bool] = mapped_column(Boolean, default=True)
     
     # Relationships
-    listing: Mapped["SupportListing"] = relationship(back_populates="supporters")
+    listing: Mapped["SupportListing"] = relationship(back_populates="reviews") # Updated relationship name
+    transaction: Mapped["Transaction"] = relationship(lazy="selectin") # Updated relationship name
 
 
 class ListingUpdate(Base):
-    """Progress updates from source."""
+    """Progress updates from vendors."""
     
     __tablename__ = "listing_updates"
     
     listing_id: Mapped[UUID] = mapped_column(
-        ForeignKey("support_listings.id"), nullable=False
+        ForeignKey("vendor_listings.id"), nullable=False # Updated FK
     )
     
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     
-    minimum_tier_amount: Mapped[int] = mapped_column(Integer, default=0)
+    minimum_tier_amount: Mapped[int] = mapped_column(Integer, default=0) # Minimum tier to see this update
     
-    media_ids: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String(36)), nullable=True)
+    media_ids: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String(36)), nullable=True) # References to uploaded media
     
     # Relationships
-    listing: Mapped["SupportListing"] = relationship(back_populates="updates")
+    listing: Mapped["SupportListing"] = relationship(back_populates="updates") # Updated relationship name
 
 
 # ============================================================================
 # FILE: app/models/payment.py
 # ============================================================================
 from sqlalchemy import String, Text, Integer, BigInteger, Boolean, ForeignKey, Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 import enum
 
 from app.database import Base
+from app.models.user import User # For relationships
 
 
 class DepositStatus(str, enum.Enum):
@@ -1211,16 +1714,17 @@ class DepositStatus(str, enum.Enum):
 
 class DepositPurpose(str, enum.Enum):
     SUBSCRIPTION = "subscription"
+    SUPPORT_CONTRIBUTION = "support_contribution" # Changed from SUPPORT_CONTRIBUTION
+    TRANSACTION = "transaction"              # For marketplace transactions
     TOP_UP = "top_up"
     ORDER = "order"
-    SUPPORT_CONTRIBUTION = "support_contribution"
     VENDOR_UPGRADE = "vendor_upgrade"
 
 
 class SubscriptionTier(str, enum.Enum):
     FREE = "free"
-    FREELANCER = "freelancer"
-    OUTLET = "outlet"
+    BASIC = "basic"      # Renamed from FREELANCER
+    PRO = "pro"          # Renamed from OUTLET
     ENTERPRISE = "enterprise"
 
 
@@ -1251,7 +1755,7 @@ class Deposit(Base):
     purpose: Mapped[DepositPurpose] = mapped_column(
         SQLEnum(DepositPurpose), nullable=False
     )
-    reference_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    reference_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True) # e.g., "sub:<user_id>:<tier>" or "tx:<transaction_id>"
     
     status: Mapped[DepositStatus] = mapped_column(
         SQLEnum(DepositStatus), default=DepositStatus.PENDING
@@ -1266,7 +1770,7 @@ class Deposit(Base):
 
 
 class Subscription(Base):
-    """Journalist subscription management."""
+    """Vendor/User subscription management."""
     
     __tablename__ = "subscriptions"
     
@@ -1287,8 +1791,11 @@ class Subscription(Base):
     )
     auto_renew: Mapped[bool] = mapped_column(Boolean, default=True)
     
-    payment_method: Mapped[str] = mapped_column(String(20), nullable=False)
-    payment_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    payment_method: Mapped[str] = mapped_column(String(20), nullable=False) # e.g., "monero", "stripe"
+    payment_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True) # e.g., Deposit ID or Stripe Charge ID
+    
+    # Relationships
+    user: Mapped["User"] = relationship(lazy="selectin")
 
 
 # ============================================================================
@@ -1303,7 +1810,7 @@ class RegisterRequest(BaseModel):
     """Registration initiation request."""
     
     username: str = Field(..., min_length=3, max_length=32)
-    role: str = Field(..., pattern="^(source|journalist)$")
+    role: str = Field(..., pattern="^(buyer|vendor)$") # Updated roles
     pgp_public_key: str = Field(..., min_length=100)
     
     @field_validator("username")
@@ -1324,10 +1831,10 @@ class RegisterRequest(BaseModel):
     @field_validator("pgp_public_key")
     @classmethod
     def validate_pgp_key(cls, v: str) -> str:
-        if "-----BEGIN PGP PUBLIC KEY BLOCK-----" not in v:
-            raise ValueError("Invalid PGP public key format")
-        if "-----END PGP PUBLIC KEY BLOCK-----" not in v:
-            raise ValueError("Invalid PGP public key format")
+        if not v.strip().startswith("-----BEGIN PGP PUBLIC KEY BLOCK-----"):
+            raise ValueError("Invalid PGP public key format: must start with BEGIN PGP PUBLIC KEY BLOCK")
+        if not v.strip().endswith("-----END PGP PUBLIC KEY BLOCK-----"):
+            raise ValueError("Invalid PGP public key format: must end with END PGP PUBLIC KEY BLOCK")
         return v
 
 
@@ -1389,54 +1896,62 @@ from datetime import datetime
 
 
 class LeadCreateRequest(BaseModel):
-    """Lead creation request."""
+    """Opportunity creation request."""
     
     title: str = Field(..., min_length=10, max_length=200)
     category: str = Field(...)
     subcategory: Optional[str] = Field(default=None, max_length=100)
-    summary: str = Field(..., min_length=200, max_length=2000)
-    evidence_types: List[str] = Field(..., min_length=1)
+    description: str = Field(..., min_length=200, max_length=2000) # Renamed from summary
+    requirements: List[str] = Field(..., min_length=1) # Renamed from evidence_types
     geographic_scope: Optional[List[str]] = Field(default=None)
+    budget_usd: Optional[int] = Field(default=None, ge=500) # Minimum budget $5
     time_sensitivity: Optional[str] = Field(
         default=None, pattern="^(urgent|moderate|archival)$"
     )
     
-    @field_validator("summary")
+    @field_validator("description")
     @classmethod
-    def validate_summary(cls, v: str) -> str:
+    def validate_description(cls, v: str) -> str:
         # Check for PII patterns (basic)
         import re
         email_pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}"
-        phone_pattern = r"bd{3}[-.]?d{3}[-.]?d{4}b"
+        phone_pattern = r"\+?\d{1,3}?[-.\s]?$$?\d{1,4}?$$?[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
         
         if re.search(email_pattern, v):
-            raise ValueError("Please do not include email addresses in the summary")
+            raise ValueError("Please do not include email addresses in the description")
         if re.search(phone_pattern, v):
-            raise ValueError("Please do not include phone numbers in the summary")
+            raise ValueError("Please do not include phone numbers in the description")
         
         return v
 
 
 class LeadResponse(BaseModel):
-    """Lead response model."""
+    """Opportunity response model."""
     
     id: str
     title: str
     category: str
     subcategory: Optional[str]
-    summary: str
-    evidence_types: List[str]
+    description: str
+    requirements: List[str]
     geographic_scope: Optional[List[str]]
+    budget_usd: Optional[int]
     time_sensitivity: Optional[str]
     status: str
     submitted_at: Optional[str]
     created_at: str
+    
+    # Vendor matching info (for vendors viewing opportunities)
+    vendor_interest_status: Optional[str] = None # e.g., "applied", "accepted"
+    accepted_vendor_username: Optional[str] = None
+    accepted_vendor_alias: Optional[str] = None # If vendor uses an alias
+    accepted_vendor_shop_name: Optional[str] = None
 
 
 class LeadListResponse(BaseModel):
-    """Paginated lead list response."""
+    """Paginated opportunity list response."""
     
-    leads: List[LeadResponse]
+    opportunities: List[LeadResponse] # Renamed from leads
     total: int
     page: int
     page_size: int
@@ -1444,79 +1959,72 @@ class LeadListResponse(BaseModel):
 
 
 class LeadInterestRequest(BaseModel):
-    """Journalist interest expression."""
+    """Vendor interest expression."""
     
     pitch: str = Field(..., min_length=50, max_length=1000)
+    # Add fields for vendor profile context if needed, e.g., shop_name, categories
 
 
 class LeadInterestResponse(BaseModel):
-    """Interest response for sources."""
+    """Interest response for buyers."""
     
     interest_id: str
-    journalist_username: str
-    organization: Optional[str]
-    organization_verified: bool
-    beat: Optional[List[str]]
+    vendor_username: str
+    vendor_shop_name: Optional[str]
+    vendor_categories: Optional[List[str]]
+    vendor_rating: float
     pitch: str
+    status: str
     created_at: str
 
 
 # ============================================================================
 # FILE: app/schemas/listing.py
 # ============================================================================
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator, computed_field
+from typing import Optional, List, Dict, Any
 from datetime import datetime
+from decimal import Decimal
+
+from app.models.listing import ListingStatus, ListingCategory, ContributionStatus # Import necessary enums
 
 
 class TierCreateRequest(BaseModel):
-    """Support tier creation request."""
+    """Tier creation request for vendor listings."""
     
     name: str = Field(..., min_length=2, max_length=50)
     description: str = Field(..., min_length=20, max_length=500)
     amount_usd: int = Field(..., ge=100)  # Minimum $1 (100 cents)
     perks: Optional[List[str]] = Field(default=None)
     is_highlighted: bool = Field(default=False)
-    max_supporters: Optional[int] = Field(default=None, ge=1)
-
-
-class ListingCreateRequest(BaseModel):
-    """Listing creation request."""
-    
-    title: str = Field(..., min_length=10, max_length=200)
-    category: str = Field(...)
-    headline: str = Field(..., min_length=50, max_length=300)
-    story: str = Field(..., min_length=500, max_length=10000)
-    disclosure_summary: Optional[str] = Field(default=None, max_length=1000)
-    risk_description: Optional[str] = Field(default=None, max_length=1000)
-    funding_goal_usd: Optional[int] = Field(default=None, ge=100)
-    funding_deadline: Optional[datetime] = Field(default=None)
+    max_purchasers: Optional[int] = Field(default=None, ge=1) # Renamed from max_supporters
 
 
 class ListingResponse(BaseModel):
-    """Listing response model."""
+    """Vendor listing response model."""
     
     id: str
     slug: str
     title: str
     category: str
     headline: str
-    story: str
+    description: str # Renamed from story
     disclosure_summary: Optional[str]
     risk_description: Optional[str]
-    funding_goal_usd: Optional[int]
-    total_raised_xmr: str
-    supporter_count: int
-    view_count: int
-    progress_percent: int
+    price_usd_cents: Optional[int] # Added fixed price
+    price_usd_display: Optional[str]
     verified: bool
     status: str
     created_at: str
     published_at: Optional[str]
+    
+    vendor_username: str
+    vendor_shop_name: Optional[str]
+    vendor_rating: float
 
 
 class TierResponse(BaseModel):
-    """Tier response model."""
+    """Tier response model for vendor listings."""
     
     id: str
     name: str
@@ -1525,24 +2033,26 @@ class TierResponse(BaseModel):
     amount_display: str
     perks: List[str]
     is_highlighted: bool
-    spots_remaining: Optional[int]
+    purchasers_remaining: Optional[int] # Renamed from spots_remaining
     is_available: bool
 
 
 class ContributionCreateRequest(BaseModel):
-    """Contribution initiation request."""
+    """Transaction initiation request."""
     
-    supporter_alias: Optional[str] = Field(default=None, max_length=64)
-    is_anonymous: bool = Field(default=True)
-    message: Optional[str] = Field(default=None, max_length=1000)
+    tier_id: Optional[str] = Field(default=None) # Specify which tier is being purchased
+    buyer_alias: Optional[str] = Field(default=None, max_length=64)
+    is_anonymous_buyer: bool = Field(default=True)
+    message: Optional[str] = Field(default=None, max_length=1000) # Optional message to vendor
 
 
 class ContributionResponse(BaseModel):
-    """Contribution payment details."""
+    """Transaction payment details."""
     
-    contribution_id: str
+    transaction_id: str
     listing_title: str
-    tier_name: str
+    vendor_shop_name: str
+    tier_name: Optional[str]
     amount_usd: str
     amount_xmr: str
     xmr_address: str
@@ -1550,26 +2060,40 @@ class ContributionResponse(BaseModel):
     qr_code_base64: Optional[str]
     expires_at: str
     exchange_rate: str
+    status: str
 
 
-class SupporterResponse(BaseModel):
-    """Public supporter info."""
+class ReviewResponse(BaseModel):
+    """Review response model."""
     
-    display_name: str
-    tier_name: Optional[str]
-    amount_display: Optional[str]
-    public_message: Optional[str]
-    is_featured: bool
+    id: str
+    listing_id: str
+    transaction_id: str
+    reviewer_alias: Optional[str]
+    rating: int
+    comment: Optional[str]
+    is_anonymous: bool
+    created_at: str
+
+
+class ListingUpdateResponse(BaseModel):
+    """Listing update response model."""
+    id: str
+    listing_id: str
+    title: str
+    content: str
+    minimum_tier_amount: int
+    media_ids: Optional[List[str]]
     created_at: str
 
 
 class ListingDetailResponse(BaseModel):
-    """Full listing detail with tiers and supporters."""
+    """Full vendor listing detail with tiers, reviews, and updates."""
     
     listing: ListingResponse
     tiers: List[TierResponse]
-    supporters: List[SupporterResponse]
-    updates: List[dict]
+    reviews: List[ReviewResponse]
+    updates: List[ListingUpdateResponse]
 
 
 # ============================================================================
@@ -1583,8 +2107,8 @@ class ConversationResponse(BaseModel):
     """Conversation summary."""
     
     id: str
-    lead_id: Optional[str]
-    lead_title: Optional[str]
+    opportunity_id: Optional[str] # Renamed from lead_id
+    opportunity_title: Optional[str] # Renamed from lead_title
     other_party_username: str
     other_party_role: str
     last_message_at: Optional[str]
@@ -1604,6 +2128,7 @@ class MessageResponse(BaseModel):
     
     id: str
     sender_username: str
+    sender_id: str
     is_mine: bool
     encrypted_content: str
     content_hash: str
@@ -1900,7 +2425,7 @@ from redis.asyncio import Redis
 
 from app.config import settings
 from app.models.user import (
-    User, UserRole, JournalistProfile, SourceProfile,
+    User, UserRole, JournalistProfile, SourceProfile, VendorProfile, BuyerProfile, # Added Vendor/Buyer profiles
     AuthChallenge, Session
 )
 from app.services.pgp_service import pgp_service
@@ -2059,12 +2584,12 @@ class AuthService:
                 status_code=410,
             )
         
-        fingerprint, pgp_key, role = pending_data.decode().split("x00", 2)
+        fingerprint, pgp_key, role_str = pending_data.decode().split("x00", 2)
         
         # Create user
         user = User(
             username=username,
-            role=UserRole(role),
+            role=UserRole(role_str),
             pgp_fingerprint=fingerprint,
             pgp_public_key=pgp_key,
         )
@@ -2072,12 +2597,12 @@ class AuthService:
         await self.db.flush()
         
         # Create role-specific profile
-        if role == "journalist":
-            profile = JournalistProfile(id=user.id)
+        if role_str == "vendor":
+            profile = VendorProfile(id=user.id)
             self.db.add(profile)
-        elif role == "source":
+        elif role_str == "buyer":
             alias = await self._generate_anonymous_alias()
-            profile = SourceProfile(id=user.id, anonymous_alias=alias)
+            profile = BuyerProfile(id=user.id, anonymous_alias=alias)
             self.db.add(profile)
         
         # Clean up Redis
@@ -2296,7 +2821,7 @@ class AuthService:
         await asyncio.sleep(delay)
     
     async def _generate_anonymous_alias(self) -> str:
-        """Generate unique anonymous alias for sources."""
+        """Generate unique anonymous alias for buyers."""
         adjectives = [
             "Silent", "Midnight", "Shadow", "Crimson", "Azure",
             "Phantom", "Velvet", "Crystal", "Thunder", "Ember",
@@ -2315,13 +2840,13 @@ class AuthService:
             
             # Check uniqueness
             result = await self.db.execute(
-                select(SourceProfile).where(SourceProfile.anonymous_alias == alias)
+                select(BuyerProfile).where(BuyerProfile.anonymous_alias == alias)
             )
             if not result.scalar_one_or_none():
                 return alias
         
         # Fallback with more entropy
-        return f"Source{secrets.token_hex(6)}"
+        return f"Buyer{secrets.token_hex(6)}"
 
 
 # ============================================================================
@@ -2341,6 +2866,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.payment import Deposit, DepositStatus, DepositPurpose
+from app.models.listing import Transaction # Import for contribution confirmation
 
 
 class MoneroRPCError(Exception):
@@ -2625,9 +3151,9 @@ from app.api import auth, leads, messages, listings, subscriptions, admin
 api_router = APIRouter()
 
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-api_router.include_router(leads.router, prefix="/leads", tags=["Leads"])
+api_router.include_router(leads.router, prefix="/opportunities", tags=["Opportunities"]) # Updated prefix
 api_router.include_router(messages.router, prefix="/messages", tags=["Messages"])
-api_router.include_router(listings.router, prefix="/listings", tags=["Support Listings"])
+api_router.include_router(listings.router, prefix="/listings", tags=["Vendor Listings"]) # Updated tag
 api_router.include_router(subscriptions.router, prefix="/subscriptions", tags=["Subscriptions"])
 api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])
 
@@ -2648,13 +3174,14 @@ from app.schemas.auth import (
     ChallengeResponseRequest,
     LoginRequest,
     AuthResponse,
+    SessionInfo,
 )
 
 
 router = APIRouter()
 
 
-@router.post("/register/challenge", response_model=RegisterChallengeResponse)
+@router.post("/register", response_model=RegisterChallengeResponse)
 async def initiate_registration(
     request: RegisterRequest,
     db: AsyncSession = Depends(get_db),
@@ -2674,40 +3201,7 @@ async def initiate_registration(
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.post("/register/verify", response_model=AuthResponse)
-async def complete_registration(
-    request: ChallengeResponseRequest,
-    response: Response,
-    db: AsyncSession = Depends(get_db),
-    redis: Redis = Depends(get_redis),
-):
-    """
-    ARCHITECT Protocol Step 2: Submit decrypted challenge to create account.
-    """
-    service = AuthService(db, redis)
-    
-    try:
-        result = await service.complete_registration(
-            request.username,
-            request.challenge_response,
-        )
-        
-        # Set session cookie
-        response.set_cookie(
-            key="vault_session",
-            value=result.session_token,
-            max_age=result.expires_in_seconds,
-            httponly=True,
-            secure=True,
-            samesite="strict",
-        )
-        
-        return result
-    except AuthenticationError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
-
-
-@router.post("/login/challenge", response_model=RegisterChallengeResponse)
+@router.post("/challenge", response_model=RegisterChallengeResponse)
 async def initiate_login(
     request: LoginRequest,
     db: AsyncSession = Depends(get_db),
@@ -2724,8 +3218,8 @@ async def initiate_login(
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.post("/login/verify", response_model=AuthResponse)
-async def complete_login(
+@router.post("/verify", response_model=AuthResponse)
+async def complete_verification(
     request: ChallengeResponseRequest,
     http_request: Request,
     response: Response,
@@ -2733,20 +3227,32 @@ async def complete_login(
     redis: Redis = Depends(get_redis),
 ):
     """
-    ARCHITECT Protocol Login Step 2: Submit challenge response to authenticate.
+    ARCHITECT Protocol Step 2: Submit decrypted challenge to complete action
+    (registration or login).
     """
     service = AuthService(db, redis)
     
     # Extract Tor circuit hash if available
     circuit_hash = http_request.headers.get("X-Tor-Circuit-Hash")
     
+    # Determine if this is a registration completion or login completion
+    # We can check if a pending registration exists in Redis
+    is_registration = await redis.exists(f"pending_reg:{request.username.lower()}")
+    
     try:
-        result = await service.complete_login(
-            request.username,
-            request.challenge_response,
-            circuit_hash,
-        )
+        if is_registration:
+            result = await service.complete_registration(
+                request.username,
+                request.challenge_response,
+            )
+        else:
+            result = await service.complete_login(
+                request.username,
+                request.challenge_response,
+                circuit_hash,
+            )
         
+        # Set session cookie
         response.set_cookie(
             key="vault_session",
             value=result.session_token,
@@ -2820,11 +3326,11 @@ from typing import List, Optional
 
 from app.database import get_db
 from app.models.user import User, UserRole
-from app.models.lead import Lead, LeadStatus, LeadCategory, EvidenceType, LeadInterest
+from app.models.lead import Lead, LeadStatus, LeadCategory, EvidenceType, LeadInterest, InterestStatus # Updated models
 from app.services.auth_service import AuthService
 from app.dependencies import get_current_user
 from app.schemas.lead import (
-    LeadCreateRequest, LeadResponse, LeadListResponse,
+    LeadCreateRequest, LeadResponse, LeadListResponse, # Using LeadResponse for Opportunities
     LeadInterestRequest, LeadInterestResponse
 )
 from app.services.lead_service import LeadService, LeadError
@@ -2838,30 +3344,30 @@ async def get_lead_service(db: AsyncSession = Depends(get_db)) -> LeadService:
 
 
 @router.post("/", response_model=LeadResponse, status_code=201)
-async def create_lead(
+async def create_opportunity( # Renamed from create_lead
     request: LeadCreateRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     lead_service: LeadService = Depends(get_lead_service),
 ):
     """
-    Submit a new lead as a source.
+    Submit a new opportunity as a buyer.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can submit leads")
+    if current_user.role != UserRole.BUYER:
+        raise HTTPException(status_code=403, detail="Only buyers can submit opportunities")
     
     try:
-        lead = await lead_service.create_lead(current_user.id, request)
-        return lead_service.model_to_response(lead)
+        opportunity = await lead_service.create_opportunity(current_user.id, request) # Updated method name
+        return lead_service.model_to_response(opportunity) # Updated model conversion
     except LeadError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
 @router.get("/", response_model=LeadListResponse)
-async def list_leads(
+async def list_opportunities( # Renamed from list_leads
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user), # Make optional for public browsing
     lead_service: LeadService = Depends(get_lead_service),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=5, le=100),
@@ -2869,35 +3375,50 @@ async def list_leads(
     status: Optional[LeadStatus] = Query(None),
 ):
     """
-    Browse leads.
-    - Sources can see their own leads (draft/submitted).
-    - Journalists can see submitted/under_review leads.
+    Browse opportunities.
+    - Buyers can see their own opportunities (draft/submitted).
+    - Vendors can see published opportunities.
+    - Admins can see all.
     """
-    if current_user.role == UserRole.SOURCE:
-        # Sources can only see their own leads
-        leads, total = await lead_service.get_leads_for_source(
-            source_id=current_user.id,
+    if current_user and current_user.role == UserRole.BUYER:
+        # Buyers can only see their own opportunities
+        opportunities, total = await lead_service.get_opportunities_for_buyer( # Updated method name
+            buyer_id=current_user.id,
             page=page,
             page_size=page_size,
             category=category,
             status=status,
         )
-    elif current_user.role == UserRole.JOURNALIST:
-        # Journalists can see submitted and under_review leads
-        leads, total = await lead_service.get_leads_for_journalist(
-            journalist_id=current_user.id,
+    elif current_user and current_user.role == UserRole.VENDOR:
+        # Vendors can see published opportunities, and those they've expressed interest in
+        opportunities, total = await lead_service.get_opportunities_for_vendor( # Updated method name
+            vendor_id=current_user.id,
+            page=page,
+            page_size=page_size,
+            category=category,
+            status=status,
+        )
+    elif current_user and current_user.role == UserRole.ADMIN:
+        # Admins can see all opportunities
+        opportunities, total = await lead_service.get_all_opportunities( # New method for admins
             page=page,
             page_size=page_size,
             category=category,
             status=status,
         )
     else:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        # Public view: only published opportunities
+        opportunities, total = await lead_service.get_opportunities_for_vendor( # Reuse vendor method for public view
+            page=page,
+            page_size=page_size,
+            category=category,
+            status=LeadStatus.PUBLISHED, # Only published are public
+        )
     
     total_pages = (total + page_size - 1) // page_size
     
     return LeadListResponse(
-        leads=[lead_service.model_to_response(lead) for lead in leads],
+        opportunities=[lead_service.model_to_response(opp) for opp in opportunities], # Updated model conversion
         total=total,
         page=page,
         page_size=page_size,
@@ -2905,121 +3426,127 @@ async def list_leads(
     )
 
 
-@router.get("/{lead_id}", response_model=LeadResponse)
-async def get_lead_detail(
-    lead_id: str,
+@router.get("/{opportunity_id}", response_model=LeadResponse)
+async def get_opportunity_details( # Renamed from get_lead_detail
+    opportunity_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user), # Make optional for public view
     lead_service: LeadService = Depends(get_lead_service),
 ):
     """
-    Get detailed information for a specific lead.
+    Get detailed information for a specific opportunity.
     Access depends on user role and ownership.
     """
     try:
-        lead = await lead_service.get_lead_by_id(lead_id)
+        opportunity = await lead_service.get_opportunity(opportunity_id) # Updated method name
         
         # Check permissions
-        if current_user.role == UserRole.SOURCE:
-            if lead.source_id != current_user.id:
-                raise LeadError("Lead not found", status_code=404)
-        elif current_user.role == UserRole.JOURNALIST:
-            if lead.status not in [LeadStatus.SUBMITTED, LeadStatus.UNDER_REVIEW, LeadStatus.PUBLISHED, LeadStatus.MATCHED]:
-                raise LeadError("Lead not found", status_code=404)
-            # Check if journalist has expressed interest or is matched
-            interest = await lead_service.get_interest_by_lead_and_journalist(lead_id, current_user.id)
-            if not interest and lead.matched_journalist_id != current_user.id:
-                raise LeadError("Lead not found", status_code=404)
-        else: # Admin
-            pass # Admins can see everything
+        if current_user:
+            if current_user.role == UserRole.BUYER:
+                if opportunity.buyer_id != current_user.id:
+                    raise LeadError("Opportunity not found", status_code=404)
+            elif current_user.role == UserRole.VENDOR:
+                # Vendors can see published opportunities or ones they've expressed interest in
+                if opportunity.status not in [LeadStatus.PUBLISHED, LeadStatus.MATCHED, LeadStatus.IN_PROGRESS]:
+                     raise LeadError("Opportunity not found", status_code=404)
+                
+                interest = await lead_service.get_interest_by_opportunity_and_vendor(opportunity_id, current_user.id)
+                if not interest and opportunity.accepted_vendor_id != current_user.id:
+                    raise LeadError("Opportunity not found", status_code=404)
+            elif current_user.role == UserRole.ADMIN:
+                pass # Admins can see everything
+        else:
+            # Public view: only published opportunities
+            if opportunity.status != LeadStatus.PUBLISHED:
+                 raise LeadError("Opportunity not found", status_code=404)
         
-        return lead_service.model_to_response(lead)
+        return lead_service.model_to_response(opportunity)
     except LeadError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.put("/{lead_id}", response_model=LeadResponse)
-async def update_lead(
-    lead_id: str,
+@router.put("/{opportunity_id}", response_model=LeadResponse)
+async def update_opportunity( # Renamed from update_lead
+    opportunity_id: str,
     request: LeadCreateRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     lead_service: LeadService = Depends(get_lead_service),
 ):
     """
-    Update a lead owned by the current source.
-    Only draft leads can be updated.
+    Update an opportunity owned by the current buyer.
+    Only draft opportunities can be updated.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can update their leads")
+    if current_user.role != UserRole.BUYER:
+        raise HTTPException(status_code=403, detail="Only buyers can update opportunities")
     
     try:
-        lead = await lead_service.update_lead(current_user.id, lead_id, request)
-        return lead_service.model_to_response(lead)
+        opportunity = await lead_service.update_opportunity(current_user.id, opportunity_id, request) # Updated method name
+        return lead_service.model_to_response(opportunity)
     except LeadError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.post("/{lead_id}/submit", response_model=LeadResponse)
-async def submit_lead_for_review(
-    lead_id: str,
+@router.post("/{opportunity_id}/submit", response_model=LeadResponse)
+async def submit_opportunity_for_review( # Renamed from submit_lead_for_review
+    opportunity_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     lead_service: LeadService = Depends(get_lead_service),
 ):
     """
-    Source submits a lead for admin review.
+    Buyer submits an opportunity for admin review.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can submit leads")
+    if current_user.role != UserRole.BUYER:
+        raise HTTPException(status_code=403, detail="Only buyers can submit opportunities")
     
     try:
-        lead = await lead_service.submit_lead(current_user.id, lead_id)
-        return lead_service.model_to_response(lead)
+        opportunity = await lead_service.submit_opportunity(current_user.id, opportunity_id) # Updated method name
+        return lead_service.model_to_response(opportunity)
     except LeadError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.post("/{lead_id}/interest", response_model=LeadInterestResponse)
-async def express_interest_in_lead(
-    lead_id: str,
+@router.post("/{opportunity_id}/interest", response_model=LeadInterestResponse)
+async def express_interest_in_opportunity( # Renamed from express_interest_in_lead
+    opportunity_id: str,
     request: LeadInterestRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     lead_service: LeadService = Depends(get_lead_service),
 ):
     """
-    Journalist expresses interest in a lead.
+    Vendor expresses interest in an opportunity.
     """
-    if current_user.role != UserRole.JOURNALIST:
-        raise HTTPException(status_code=403, detail="Only journalists can express interest")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can express interest")
     
     try:
-        interest = await lead_service.express_interest(current_user.id, lead_id, request)
+        interest = await lead_service.express_interest(current_user.id, opportunity_id, request) # Updated method name
         return lead_service.interest_model_to_response(interest)
     except LeadError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.get("/{lead_id}/interests", response_model=List[LeadInterestResponse])
-async def get_lead_interests(
-    lead_id: str,
+@router.get("/{opportunity_id}/interests", response_model=List[LeadInterestResponse])
+async def get_opportunity_interests( # Renamed from get_lead_interests
+    opportunity_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     lead_service: LeadService = Depends(get_lead_service),
 ):
     """
-    Source views journalists who have expressed interest in their lead.
+    Buyer views vendors who have expressed interest in their opportunity.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can view lead interests")
+    if current_user.role != UserRole.BUYER:
+        raise HTTPException(status_code=403, detail="Only buyers can view opportunity interests")
     
     try:
-        lead = await lead_service.get_lead_by_id(lead_id)
-        if lead.source_id != current_user.id:
-            raise LeadError("Lead not found", status_code=404)
+        opportunity = await lead_service.get_opportunity(opportunity_id) # Updated method name
+        if opportunity.buyer_id != current_user.id:
+            raise LeadError("Opportunity not found", status_code=404)
         
-        interests = await lead_service.get_interests_for_lead(lead_id)
+        interests = await lead_service.get_interests_for_opportunity(opportunity_id) # Updated method name
         return [lead_service.interest_model_to_response(i) for i in interests]
     except LeadError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
@@ -3030,7 +3557,7 @@ async def get_lead_interests(
 # ============================================================================
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, desc, asc
 from typing import List, Optional
 
 from app.database import get_db
@@ -3059,7 +3586,7 @@ async def list_conversations(
     page_size: int = Query(20, ge=5, le=100),
 ):
     """
-    List all conversations for the current user.
+    List all conversations for the current user (buyer or vendor).
     """
     conversations, total = await message_service.get_conversations_for_user(
         user_id=current_user.id,
@@ -3067,22 +3594,45 @@ async def list_conversations(
         page_size=page_size,
     )
     
-    # Fetch lead titles for context
-    lead_titles = {}
-    lead_ids = [c.lead_id for c in conversations if c.lead_id]
-    if lead_ids:
-        from app.models.lead import Lead
-        stmt = select(Lead.id, Lead.title).where(Lead.id.in_(lead_ids))
+    # Fetch related data (opportunity title, other party username/role)
+    opportunity_titles = {}
+    opportunity_ids = [c.opportunity_id for c in conversations if c.opportunity_id]
+    if opportunity_ids:
+        from app.models.lead import Lead # Import locally
+        stmt = select(Lead.id, Lead.title).where(Lead.id.in_(opportunity_ids))
         result = await db.execute(stmt)
-        lead_titles = dict(result.fetchall())
+        opportunity_titles = dict(result.fetchall())
     
+    other_party_details = {}
+    user_ids = [c.buyer_id if c.buyer_id != current_user.id else c.vendor_id for c in conversations]
+    if user_ids:
+        from app.models.user import User # Import locally
+        stmt = select(User.id, User.username, User.role).where(User.id.in_(user_ids))
+        result = await db.execute(stmt)
+        other_party_details = {row.id: {"username": row.username, "role": row.role.value} for row in result}
+
+    # Update conversation models with fetched data before converting to response
+    for conv in conversations:
+        if conv.opportunity_id:
+            setattr(conv, 'opportunity_title', opportunity_titles.get(str(conv.opportunity_id)))
+        
+        other_party_id = conv.buyer_id if conv.buyer_id != current_user.id else conv.vendor_id
+        if other_party_id in other_party_details:
+            details = other_party_details[other_party_id]
+            # Attach details to conversation object for response conversion
+            # This is a bit of a hack; ideally, query should join directly or use relationship loading
+            if conv.buyer_id == current_user.id: # Current user is buyer
+                 setattr(conv, 'vendor', type('obj', (object,), {'username': details['username'], 'role': UserRole(details['role'])}))
+            else: # Current user is vendor
+                 setattr(conv, 'buyer', type('obj', (object,), {'username': details['username'], 'role': UserRole(details['role'])}))
+
     return [
-        message_service.conversation_to_response(c, current_user.id, lead_titles.get(str(c.lead_id)))
+        message_service.conversation_to_response(c, current_user.id) # Pass only user ID, response converter handles details
         for c in conversations
     ]
 
 
-@router.get("/conversations/{conversation_id}", response_model=ConversationDetailResponse)
+@router.get("/{conversation_id}", response_model=ConversationDetailResponse)
 async def get_conversation_detail(
     conversation_id: str,
     request: Request,
@@ -3097,16 +3647,16 @@ async def get_conversation_detail(
         conversation = await message_service.get_conversation_by_id(conversation_id)
         
         # Authorization check
-        if not (conversation.source_id == current_user.id or conversation.journalist_id == current_user.id):
+        if not (conversation.buyer_id == current_user.id or conversation.vendor_id == current_user.id):
             raise MessageError("Conversation not found", status_code=404)
         
         # Mark messages as read
         await message_service.mark_messages_as_read(conversation_id, current_user.id)
         
         # Get recipient info
-        recipient_id = conversation.source_id if conversation.journalist_id == current_user.id else conversation.journalist_id
+        recipient_id = conversation.buyer_id if conversation.vendor_id == current_user.id else conversation.vendor_id
         
-        from app.models.user import User # Import locally to avoid circular dependency
+        # Fetch recipient user details (PGP fingerprint, public key)
         stmt = select(User.pgp_fingerprint, User.pgp_public_key).where(User.id == recipient_id)
         result = await db.execute(stmt)
         recipient_pgp = result.first()
@@ -3117,19 +3667,19 @@ async def get_conversation_detail(
         # Fetch messages
         messages = await message_service.get_messages_for_conversation(conversation_id)
         
-        # Fetch lead title for context
-        lead_title = None
-        if conversation.lead_id:
-            from app.models.lead import Lead
-            stmt = select(Lead.title).where(Lead.id == conversation.lead_id)
+        # Fetch opportunity title for context
+        opportunity_title = None
+        if conversation.opportunity_id:
+            from app.models.lead import Lead # Import locally
+            stmt = select(Lead.title).where(Lead.id == conversation.opportunity_id)
             result = await db.execute(stmt)
-            lead_title_row = result.first()
-            if lead_title_row:
-                lead_title = lead_title_row[0]
+            opportunity_title_row = result.first()
+            if opportunity_title_row:
+                opportunity_title = opportunity_title_row[0]
         
         # Get common conversation info
         conversation_resp = message_service.conversation_to_response(
-            conversation, current_user.id, lead_title
+            conversation, current_user.id, opportunity_title # Pass opportunity title
         )
         
         return ConversationDetailResponse(
@@ -3142,7 +3692,7 @@ async def get_conversation_detail(
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.post("/conversations/{conversation_id}/messages", response_model=MessageResponse, status_code=201)
+@router.post("/{conversation_id}/messages", response_model=MessageResponse, status_code=201)
 async def send_message(
     conversation_id: str,
     request: MessageCreateRequest,
@@ -3174,7 +3724,7 @@ async def send_message(
 # ============================================================================
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, desc, asc, literal_column
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -3182,9 +3732,10 @@ from decimal import Decimal
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.listing import (
-    SupportListing, ListingStatus, ListingCategory, SupportTier,
-    SupportContribution, ContributionStatus
+    SupportListing, ListingStatus, ListingCategory, SupportTier, # Renamed to VendorListing, VendorTier
+    SupportContribution, ContributionStatus, Review, ListingUpdate # Renamed Transaction, added Review
 )
+from app.models.listing import VendorListing, VendorTier, Transaction, Review, ListingUpdate # Import new models
 from app.services.listing_service import ListingService, ListingError
 from app.services.monero_service import MoneroService, MoneroRPCError, monero_service
 from app.services.price_oracle import PriceOracleError, price_oracle
@@ -3192,9 +3743,9 @@ from app.dependencies import get_current_user
 from app.schemas.listing import (
     ListingCreateRequest, ListingResponse, TierCreateRequest,
     TierResponse, ContributionCreateRequest, ContributionResponse,
-    SupporterResponse, ListingDetailResponse
+    ReviewResponse, ListingUpdateResponse, ListingDetailResponse # Added ReviewResponse, ListingUpdateResponse
 )
-from app.models.payment import DepositPurpose
+from app.models.payment import DepositPurpose # For transaction purpose
 
 
 async def get_listing_service(db: AsyncSession = Depends(get_db)) -> ListingService:
@@ -3202,30 +3753,30 @@ async def get_listing_service(db: AsyncSession = Depends(get_db)) -> ListingServ
 
 
 @router.post("/", response_model=ListingResponse, status_code=201)
-async def create_listing(
+async def create_vendor_listing( # Renamed from create_listing
     request: ListingCreateRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     listing_service: ListingService = Depends(get_listing_service),
 ):
     """
-    Create a new support listing as a source.
+    Create a new vendor listing.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can create listings")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can create listings")
     
     try:
-        listing = await listing_service.create_listing(current_user.id, request)
+        listing = await listing_service.create_vendor_listing(current_user.id, request) # Updated method name
         return listing_service.model_to_response(listing)
     except ListingError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
 @router.get("/", response_model=List[ListingResponse])
-async def list_listings(
+async def list_vendor_listings( # Renamed from list_listings
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user),
     listing_service: ListingService = Depends(get_listing_service),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=5, le=100),
@@ -3233,20 +3784,30 @@ async def list_listings(
     status: Optional[ListingStatus] = Query(None),
 ):
     """
-    Browse support listings.
-    - Sources can see their own listings (draft, pending, active).
-    - Public can see active, verified listings.
+    Browse vendor listings.
+    - Vendors can see their own listings (draft, pending, active).
+    - Buyers can see active, verified listings.
+    - Admins can see all.
     """
-    if current_user.role == UserRole.SOURCE:
-        listings, total = await listing_service.get_listings_for_source(
-            source_id=current_user.id,
+    if current_user and current_user.role == UserRole.VENDOR:
+        listings, total = await listing_service.get_listings_for_vendor( # Updated method name
+            vendor_id=current_user.id,
             page=page,
             page_size=page_size,
             category=category,
             status=status,
         )
-    elif current_user.role in [UserRole.JOURNALIST, UserRole.ADMIN]:
-        # Journalists and Admins can see more, but still filter by status/category
+    elif current_user and current_user.role == UserRole.BUYER:
+        # Buyers see active and verified listings
+        listings, total = await listing_service.get_listings(
+            page=page,
+            page_size=page_size,
+            category=category,
+            status=ListingStatus.ACTIVE,
+            verified_by_admin=True,
+        )
+    elif current_user and current_user.role == UserRole.ADMIN:
+        # Admins see all, with optional filters
         listings, total = await listing_service.get_listings(
             page=page,
             page_size=page_size,
@@ -3274,38 +3835,38 @@ async def list_listings(
     }
 
 
-@router.get("/{slug}", response_model=ListingDetailResponse)
-async def get_listing_detail(
-    slug: str,
+@router.get("/{listing_slug}", response_model=ListingDetailResponse)
+async def get_vendor_listing_detail( # Renamed from get_listing_detail
+    listing_slug: str,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user),
     listing_service: ListingService = Depends(get_listing_service),
 ):
     """
-    Get detailed information for a specific listing.
+    Get detailed information for a specific vendor listing.
     """
     try:
-        listing = await listing_service.get_listing_by_slug(slug)
+        listing = await listing_service.get_listing_by_slug(listing_slug)
         
         # Permission check: only owner or admin can see non-active/non-verified listings
         if not listing.verified_by_admin and listing.status not in [ListingStatus.ACTIVE, ListingStatus.PAUSED]:
-            if not current_user or current_user.id != listing.source_id:
+            if not current_user or current_user.id != listing.vendor_id:
                 raise ListingError("Listing not found", status_code=404)
         
-        # Increment view count if not owner and not admin
-        if current_user and current_user.id != listing.source_id and current_user.role != UserRole.ADMIN:
+        # Increment view count if not owner and not admin/anonymous
+        if current_user and current_user.id != listing.vendor_id and current_user.role != UserRole.ADMIN:
             await listing_service.increment_view_count(listing.id)
         elif not current_user: # Anonymous user
             await listing_service.increment_view_count(listing.id)
             
         tiers = await listing_service.get_tiers_for_listing(listing.id)
-        supporters = await listing_service.get_supporters_for_listing(listing.id)
+        reviews = await listing_service.get_reviews_for_listing(listing.id) # Get reviews
         updates = await listing_service.get_updates_for_listing(listing.id)
         
         return ListingDetailResponse(
             listing=listing_service.model_to_response(listing),
             tiers=[listing_service.tier_to_response(tier) for tier in tiers],
-            supporters=[listing_service.supporter_to_response(s) for s in supporters],
+            reviews=[listing_service.review_to_response(r) for r in reviews], # Convert reviews
             updates=[listing_service.update_to_response(u) for u in updates],
         )
     except ListingError as e:
@@ -3313,7 +3874,7 @@ async def get_listing_detail(
 
 
 @router.put("/{listing_id}", response_model=ListingResponse)
-async def update_listing(
+async def update_vendor_listing( # Renamed from update_listing
     listing_id: str,
     request: ListingCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -3321,30 +3882,30 @@ async def update_listing(
     listing_service: ListingService = Depends(get_listing_service),
 ):
     """
-    Update a listing owned by the current source.
+    Update a vendor listing owned by the current vendor.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can update their listings")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can update their listings")
     
     try:
-        listing = await listing_service.update_listing(current_user.id, listing_id, request)
+        listing = await listing_service.update_vendor_listing(current_user.id, listing_id, request) # Updated method name
         return listing_service.model_to_response(listing)
     except ListingError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
 @router.post("/{listing_id}/submit", response_model=ListingResponse)
-async def submit_listing_for_review(
+async def submit_vendor_listing_for_review( # Renamed from submit_listing
     listing_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     listing_service: ListingService = Depends(get_listing_service),
 ):
     """
-    Source submits a listing for admin review.
+    Vendor submits a listing for admin review.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can submit listings")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can submit listings")
     
     try:
         listing = await listing_service.submit_listing(current_user.id, listing_id)
@@ -3354,7 +3915,7 @@ async def submit_listing_for_review(
 
 
 @router.post("/{listing_id}/tiers", response_model=TierResponse, status_code=201)
-async def add_tier_to_listing(
+async def add_tier_to_vendor_listing( # Renamed from add_tier_to_listing
     listing_id: str,
     request: TierCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -3362,20 +3923,20 @@ async def add_tier_to_listing(
     listing_service: ListingService = Depends(get_listing_service),
 ):
     """
-    Add a new support tier to a listing.
+    Add a new tier to a vendor listing.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can add tiers")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can add tiers")
     
     try:
-        tier = await listing_service.add_tier(current_user.id, listing_id, request)
+        tier = await listing_service.add_vendor_tier(current_user.id, listing_id, request) # Updated method name
         return listing_service.tier_to_response(tier)
     except ListingError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
 @router.put("/{listing_id}/tiers/{tier_id}", response_model=TierResponse)
-async def update_tier_for_listing(
+async def update_vendor_tier( # Renamed from update_tier_for_listing
     listing_id: str,
     tier_id: str,
     request: TierCreateRequest,
@@ -3384,20 +3945,20 @@ async def update_tier_for_listing(
     listing_service: ListingService = Depends(get_listing_service),
 ):
     """
-    Update an existing support tier.
+    Update an existing vendor tier.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can update tiers")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can update tiers")
     
     try:
-        tier = await listing_service.update_tier(current_user.id, listing_id, tier_id, request)
+        tier = await listing_service.update_vendor_tier(current_user.id, listing_id, tier_id, request) # Updated method name
         return listing_service.tier_to_response(tier)
     except ListingError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.post("/{listing_slug}/contribute", response_model=ContributionResponse, status_code=201)
-async def initiate_contribution(
+@router.post("/{listing_slug}/purchase", response_model=ContributionResponse, status_code=201) # Renamed from contribute
+async def initiate_transaction( # Renamed from initiate_contribution
     listing_slug: str,
     request: ContributionCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -3406,94 +3967,109 @@ async def initiate_contribution(
     monero_service: MoneroService = Depends(lambda: monero_service),
 ):
     """
-    Initiate a contribution to a support listing.
+    Initiate a purchase transaction for a vendor listing.
     Generates a Monero deposit address.
     """
+    # Get the listing
     try:
-        # Get the listing
         listing = await listing_service.get_listing_by_slug(listing_slug)
-        
-        # Get target tier if specified
-        target_tier_id = request.get("tier_id") # Assume tier_id is passed in request if applicable
-        target_tier = None
-        if target_tier_id:
-            target_tier = await listing_service.get_tier_by_id(target_tier_id)
+    except ListingError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+    
+    # Validate buyer role if user is logged in
+    if current_user and current_user.role != UserRole.BUYER:
+        raise HTTPException(status_code=403, detail="Only buyers can initiate transactions")
+    
+    # Get target tier if specified
+    target_tier = None
+    if request.tier_id:
+        try:
+            target_tier = await listing_service.get_vendor_tier_by_id(request.tier_id) # Updated method name
             if not target_tier or target_tier.listing_id != listing.id:
                 raise ListingError("Invalid tier specified", status_code=422)
-        
-        # Determine amount and currency
-        # If no tier is specified, or user wants custom amount, use listing's goal if available
-        # For now, we'll require a tier or rely on listing's flexibility for exact amounts
-        if not target_tier:
-            raise ListingError("Please select a support tier", status_code=422)
-        
-        contribution_amount_usd_cents = target_tier.amount_usd
-        
-        # Get current XMR/USD exchange rate
-        try:
-            xmr_usd_price = await price_oracle.get_xmr_usd_price()
-        except PriceOracleError as e:
-            raise ListingError(f"Price oracle unavailable: {e}", status_code=503)
-        
-        # Calculate XMR amount
-        contribution_amount_xmr = Decimal(contribution_amount_usd_cents) / xmr_usd_price
-        contribution_amount_atomic = monero_service.xmr_to_atomic(contribution_amount_xmr)
-        
-        # Create deposit address
+        except ListingError as e:
+            raise HTTPException(status_code=e.status_code, detail=e.message)
+    
+    # Determine amount
+    if not target_tier:
+        raise ListingError("Please select a vendor tier", status_code=422)
+    
+    transaction_amount_usd_cents = target_tier.amount_usd
+    
+    # Get current XMR/USD exchange rate
+    try:
+        xmr_usd_price = await price_oracle.get_xmr_usd_price()
+    except PriceOracleError as e:
+        raise ListingError(f"Price oracle unavailable: {e}", status_code=503)
+    
+    # Calculate XMR amount
+    transaction_amount_xmr = Decimal(transaction_amount_usd_cents) / xmr_usd_price
+    transaction_amount_atomic = monero_service.xmr_to_atomic(transaction_amount_xmr)
+    
+    # Create deposit address
+    try:
         deposit = await monero_service.create_deposit_address(
             db=db,
-            user_id=str(current_user.id) if current_user else None,
-            purpose=DepositPurpose.SUPPORT_CONTRIBUTION,
-            expected_amount_atomic=contribution_amount_atomic,
-            reference_id=f"{listing.id}:{target_tier.id}",
+            user_id=str(current_user.id) if current_user else None, # Link to buyer user if logged in
+            purpose=DepositPurpose.TRANSACTION, # Purpose is now TRANSACTION
+            expected_amount_atomic=transaction_amount_atomic,
+            reference_id=f"tx:{listing.id}:{target_tier.id}", # Reference includes listing and tier ID
             expires_hours=24, # Addresses expire after 24 hours
         )
-        
-        # Create contribution record
-        contribution = await listing_service.create_contribution(
+    except MoneroRPCError as e:
+        raise ListingError(f"Failed to create Monero address: {e}", status_code=503)
+    
+    # Create transaction record
+    try:
+        transaction = await listing_service.create_transaction( # Updated method name
             listing_id=listing.id,
+            vendor_id=listing.vendor_id, # Add vendor ID for context
             tier_id=target_tier.id,
-            supporter_user_id=str(current_user.id) if current_user else None,
-            supporter_alias=request.supporter_alias,
-            is_anonymous=request.is_anonymous,
+            buyer_user_id=str(current_user.id) if current_user else None,
+            buyer_alias=request.buyer_alias,
+            is_anonymous_buyer=request.is_anonymous_buyer,
             encrypted_message=request.message,
             deposit_id=str(deposit.id),
-            amount_usd_cents=contribution_amount_usd_cents,
-            amount_xmr_atomic=contribution_amount_atomic,
+            amount_usd_cents=transaction_amount_usd_cents,
+            amount_xmr_atomic=transaction_amount_atomic,
             exchange_rate_used=f"{xmr_usd_price:.8f}" # Store rate for reference
         )
         
-        return ContributionResponse(
-            contribution_id=str(contribution.id),
+        return ContributionResponse( # Reusing ContributionResponse schema
+            transaction_id=str(transaction.id),
             listing_title=listing.title,
+            vendor_shop_name=listing.vendor.shop_name if listing.vendor and listing.vendor.shop_name else "Unknown Vendor",
             tier_name=target_tier.name,
-            amount_usd=f"{Decimal(contribution_amount_usd_cents) / 100:.2f}",
-            amount_xmr=f"{monero_service.atomic_to_xmr(contribution_amount_atomic):.8f}",
+            amount_usd=f"{Decimal(transaction_amount_usd_cents) / 100.0:.2f}",
+            amount_xmr=f"{monero_service.atomic_to_xmr(transaction_amount_atomic):.8f}",
             xmr_address=deposit.address,
             payment_id=deposit.payment_id,
             qr_code_base64=deposit.qr_code_base64,
             expires_at=deposit.expires_at.isoformat(),
             exchange_rate=f"{xmr_usd_price:.8f}",
+            status=transaction.status.value,
         )
-    except (ListingError, MoneroRPCError, PriceOracleError) as e:
-        raise HTTPException(status_code=getattr(e, 'status_code', 500), detail=str(e))
+    except ListingError as e:
+        # If transaction creation fails, attempt to clean up the deposit address if possible
+        # (This part might be complex depending on Monero RPC capabilities)
+        raise HTTPException(status_code=e.status_code, detail=e.message)
     except Exception as e:
-        # Catch any unexpected errors during contribution creation
+        # Catch any unexpected errors during transaction creation
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 
-@router.get("/{listing_id}/supporters", response_model=List[SupporterResponse])
-async def get_listing_supporters(
+@router.get("/{listing_id}/reviews", response_model=List[ReviewResponse])
+async def get_listing_reviews( # Renamed from get_listing_supporters
     listing_id: str,
     db: AsyncSession = Depends(get_db),
     listing_service: ListingService = Depends(get_listing_service),
 ):
     """
-    Get public supporter wall entries for a listing.
+    Get reviews for a vendor listing.
     """
     try:
-        supporters = await listing_service.get_supporters_for_listing(listing_id)
-        return [listing_service.supporter_to_response(s) for s in supporters]
+        reviews = await listing_service.get_reviews_for_listing(listing_id)
+        return [listing_service.review_to_response(r) for r in reviews]
     except ListingError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -3509,13 +4085,13 @@ async def add_update_to_listing(
     listing_service: ListingService = Depends(get_listing_service),
 ):
     """
-    Add a progress update to a listing.
+    Add a progress update to a vendor listing.
     """
-    if current_user.role != UserRole.SOURCE:
-        raise HTTPException(status_code=403, detail="Only sources can add updates")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can add updates")
     
     try:
-        update = await listing_service.add_update(
+        update = await listing_service.add_listing_update( # Updated method name
             current_user.id, listing_id, title, content, minimum_tier_amount
         )
         return {"message": "Update added successfully", "update_id": str(update.id)}
@@ -3557,39 +4133,39 @@ async def get_subscription_plans(
     listing_service: ListingService = Depends(get_listing_service), # Used for fallback pricing if needed
 ):
     """
-    Get available subscription plans for journalists.
+    Get available subscription plans for vendors.
     """
     plans = []
     
-    # Freelancer
+    # Basic Tier
     plans.append(SubscriptionPlanResponse(
-        tier=SubscriptionTier.FREELANCER.value,
+        tier=SubscriptionTier.BASIC.value, # Renamed from Freelancer
         price_usd=settings.PRICE_FREELANCER_MONTHLY / 100.0,
-        features=["Access to submitted leads", "Basic analytics"],
-        description="For individual journalists and freelancers.",
+        features=["Basic vendor listing", "Respond to 5 opportunities/month"],
+        description="For new vendors and basic services.",
     ))
     
-    # Outlet
+    # Pro Tier
     plans.append(SubscriptionPlanResponse(
-        tier=SubscriptionTier.OUTLET.value,
+        tier=SubscriptionTier.PRO.value, # Renamed from Outlet
         price_usd=settings.PRICE_OUTLET_MONTHLY / 100.0,
-        features=["All freelancer features", "Team accounts (up to 5)", "Advanced search filters", "Priority support"],
-        description="For small news organizations and agencies.",
+        features=["All Basic features", "Priority listing placement", "Unlimited opportunities responses", "Enhanced analytics"],
+        description="For established vendors seeking more visibility.",
     ))
     
-    # Enterprise
+    # Enterprise Tier
     plans.append(SubscriptionPlanResponse(
         tier=SubscriptionTier.ENTERPRISE.value,
         price_usd=settings.PRICE_ENTERPRISE_MONTHLY / 100.0,
-        features=["All outlet features", "Unlimited team members", "Dedicated account manager", "API access", "Custom integrations"],
-        description="For large enterprises and specialized investigative units.",
+        features=["All Pro features", "Featured vendor status", "Dedicated support channel", "API access"],
+        description="For premium vendors and enterprise solutions.",
     ))
     
     return plans
 
 
-@router.post("/", response_model=Dict[str, Any], status_code=201)
-async def create_subscription(
+@router.post("/subscribe", response_model=Dict[str, Any], status_code=201) # Changed route to /subscribe
+async def subscribe_to_plan(
     request: SubscriptionCreateRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -3600,16 +4176,16 @@ async def create_subscription(
     Start a new subscription or renew an existing one.
     Returns payment details (Monero address) if paying with XMR.
     """
-    if current_user.role != UserRole.JOURNALIST:
-        raise HTTPException(status_code=403, detail="Only journalists can subscribe")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can subscribe")
     
     try:
         # Determine price based on tier
         tier = request.tier
         price_usd_cents = 0
-        if tier == SubscriptionTier.FREELANCER.value:
+        if tier == SubscriptionTier.BASIC.value:
             price_usd_cents = settings.PRICE_FREELANCER_MONTHLY
-        elif tier == SubscriptionTier.OUTLET.value:
+        elif tier == SubscriptionTier.PRO.value:
             price_usd_cents = settings.PRICE_OUTLET_MONTHLY
         elif tier == SubscriptionTier.ENTERPRISE.value:
             price_usd_cents = settings.PRICE_ENTERPRISE_MONTHLY
@@ -3677,10 +4253,10 @@ async def get_current_subscription(
     subscription_service: SubscriptionService = Depends(get_subscription_service),
 ):
     """
-    Get the current active subscription for the journalist.
+    Get the current active subscription for the vendor.
     """
-    if current_user.role != UserRole.JOURNALIST:
-        raise HTTPException(status_code=403, detail="Only journalists can view subscriptions")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can view subscriptions")
     
     try:
         subscription = await subscription_service.get_active_subscription_for_user(current_user.id)
@@ -3689,12 +4265,13 @@ async def get_current_subscription(
             return SubscriptionResponse(
                 user_id=str(current_user.id),
                 tier=SubscriptionTier.FREE.value,
-                price_usd=0.0,
+                price_usd="0.00", # Default to string format
                 price_xmr="0.0",
                 started_at=None,
                 expires_at=None,
                 status=SubscriptionStatus.ACTIVE.value, # Free tier is always active
                 auto_renew=False,
+                payment_method="none",
             )
         
         # Fetch associated deposit details if applicable (for XMR payments)
@@ -3726,10 +4303,10 @@ async def cancel_subscription(
     subscription_service: SubscriptionService = Depends(get_subscription_service),
 ):
     """
-    Cancel the current subscription.
+    Cancel the current subscription for the vendor.
     """
-    if current_user.role != UserRole.JOURNALIST:
-        raise HTTPException(status_code=403, detail="Only journalists can cancel subscriptions")
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(status_code=403, detail="Only vendors can cancel subscriptions")
     
     try:
         success = await subscription_service.cancel_subscription(current_user.id)
@@ -3747,15 +4324,15 @@ from sqlalchemy import select, func, update
 from typing import List, Optional, Dict, Any
 
 from app.database import get_db
-from app.models.user import User, UserRole, VerificationStatus
-from app.models.lead import Lead, LeadStatus
-from app.models.listing import SupportListing, ListingStatus
+from app.models.user import User, UserRole, VerificationStatus, VendorProfile # Added VendorProfile
+from app.models.lead import Lead, LeadStatus # Renamed Lead to Opportunity
+from app.models.listing import VendorListing, ListingStatus # Renamed SupportListing to VendorListing
 from app.services.auth_service import AuthService
 from app.services.admin_service import AdminService, AdminError
 from app.dependencies import get_current_user
 from app.schemas.auth import AuthResponse # Reusing for updated user info
 from app.schemas.admin import (
-    AdminLeadResponse, AdminJournalistResponse, AdminListingResponse,
+    AdminLeadResponse, AdminVendorResponse, AdminListingResponse, # Renamed AdminLeadResponse, AdminJournalistResponse
     UserManagementResponse, UserDetailResponse, AdminReviewResponse
 )
 
@@ -3764,8 +4341,8 @@ async def get_admin_service(db: AsyncSession = Depends(get_db)) -> AdminService:
     return AdminService(db)
 
 
-@router.get("/leads/pending", response_model=List[AdminLeadResponse])
-async def get_pending_leads(
+@router.get("/opportunities/pending", response_model=List[AdminLeadResponse]) # Changed prefix
+async def get_pending_opportunities( # Renamed from get_pending_leads
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     admin_service: AdminService = Depends(get_admin_service),
@@ -3773,13 +4350,13 @@ async def get_pending_leads(
     page_size: int = Query(20, ge=5, le=100),
 ):
     """
-    Get a list of leads awaiting admin review.
+    Get a list of opportunities awaiting admin review.
     """
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Only admins can access this endpoint")
     
-    leads, total = await admin_service.get_leads_by_status(
-        status=LeadStatus.SUBMITTED,
+    opportunities, total = await admin_service.get_opportunities_by_status( # Updated method name
+        status=LeadStatus.SUBMITTED, # Still using LeadStatus enum for now
         page=page,
         page_size=page_size,
     )
@@ -3787,7 +4364,7 @@ async def get_pending_leads(
     total_pages = (total + page_size - 1) // page_size
     
     return {
-        "leads": [admin_service.lead_to_admin_response(lead) for lead in leads],
+        "opportunities": [admin_service.opportunity_to_admin_response(opp) for opp in opportunities], # Updated model conversion
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -3795,49 +4372,49 @@ async def get_pending_leads(
     }
 
 
-@router.post("/leads/{lead_id}/approve", response_model=AdminReviewResponse)
-async def approve_lead(
-    lead_id: str,
+@router.post("/opportunities/{opportunity_id}/approve", response_model=AdminReviewResponse) # Changed prefix
+async def approve_opportunity( # Renamed from approve_lead
+    opportunity_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     admin_service: AdminService = Depends(get_admin_service),
 ):
     """
-    Approve a lead for publication.
+    Approve an opportunity for publication.
     """
     if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can approve leads")
+        raise HTTPException(status_code=403, detail="Only admins can approve opportunities")
     
     try:
-        lead = await admin_service.review_lead(lead_id, LeadStatus.PUBLISHED, current_user.id)
-        return AdminReviewResponse(message="Lead approved successfully", status=lead.status.value)
+        opportunity = await admin_service.review_opportunity(opportunity_id, LeadStatus.PUBLISHED, current_user.id) # Updated method name
+        return AdminReviewResponse(message="Opportunity approved successfully", status=opportunity.status.value)
     except AdminError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.post("/leads/{lead_id}/reject", response_model=AdminReviewResponse)
-async def reject_lead(
-    lead_id: str,
+@router.post("/opportunities/{opportunity_id}/reject", response_model=AdminReviewResponse) # Changed prefix
+async def reject_opportunity( # Renamed from reject_lead
+    opportunity_id: str,
     review_notes: str = Query(..., min_length=10, max_length=500),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     admin_service: AdminService = Depends(get_admin_service),
 ):
     """
-    Reject a lead with optional review notes.
+    Reject an opportunity with optional review notes.
     """
     if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can reject leads")
+        raise HTTPException(status_code=403, detail="Only admins can reject opportunities")
     
     try:
-        lead = await admin_service.review_lead(lead_id, LeadStatus.WITHDRAWN, current_user.id, review_notes=review_notes)
-        return AdminReviewResponse(message="Lead rejected successfully", status=lead.status.value)
+        opportunity = await admin_service.review_opportunity(opportunity_id, LeadStatus.WITHDRAWN, current_user.id, review_notes=review_notes) # Updated method name
+        return AdminReviewResponse(message="Opportunity rejected successfully", status=opportunity.status.value)
     except AdminError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.get("/journalists/pending", response_model=List[AdminJournalistResponse])
-async def get_pending_journalist_verifications(
+@router.get("/vendors/pending", response_model=List[AdminVendorResponse]) # Changed prefix, Renamed response model
+async def get_pending_vendor_verifications( # Renamed from get_pending_journalist_verifications
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     admin_service: AdminService = Depends(get_admin_service),
@@ -3845,13 +4422,13 @@ async def get_pending_journalist_verifications(
     page_size: int = Query(20, ge=5, le=100),
 ):
     """
-    Get a list of journalists awaiting verification.
+    Get a list of vendors awaiting verification.
     """
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Only admins can manage verifications")
     
-    journalists, total = await admin_service.get_users_by_role_and_verification(
-        role=UserRole.JOURNALIST,
+    vendors, total = await admin_service.get_users_by_role_and_verification(
+        role=UserRole.VENDOR, # Filter by vendor role
         verification_status=VerificationStatus.PENDING,
         page=page,
         page_size=page_size,
@@ -3860,7 +4437,7 @@ async def get_pending_journalist_verifications(
     total_pages = (total + page_size - 1) // page_size
     
     return {
-        "journalists": [admin_service.journalist_to_admin_response(j) for j in journalists],
+        "vendors": [admin_service.vendor_to_admin_response(v) for v in vendors], # Updated model conversion
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -3868,28 +4445,28 @@ async def get_pending_journalist_verifications(
     }
 
 
-@router.post("/journalists/{user_id}/verify", response_model=AdminReviewResponse)
-async def verify_journalist(
+@router.post("/vendors/{user_id}/verify", response_model=AdminReviewResponse) # Changed prefix
+async def verify_vendor( # Renamed from verify_journalist
     user_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     admin_service: AdminService = Depends(get_admin_service),
 ):
     """
-    Verify a journalist's account.
+    Verify a vendor's account.
     """
     if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can verify journalists")
+        raise HTTPException(status_code=403, detail="Only admins can verify vendors")
     
     try:
         user = await admin_service.verify_user_verification(user_id, VerificationStatus.VERIFIED, current_user.id)
-        return AdminReviewResponse(message="Journalist verified successfully", status=user.journalist_profile.verification_status.value)
+        return AdminReviewResponse(message="Vendor verified successfully", status=user.vendor_profile.verification_status.value) # Updated profile access
     except AdminError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
-@router.post("/journalists/{user_id}/reject", response_model=AdminReviewResponse)
-async def reject_journalist(
+@router.post("/vendors/{user_id}/reject", response_model=AdminReviewResponse) # Changed prefix
+async def reject_vendor( # Renamed from reject_journalist
     user_id: str,
     review_notes: str = Query(..., min_length=10, max_length=500),
     db: AsyncSession = Depends(get_db),
@@ -3897,20 +4474,20 @@ async def reject_journalist(
     admin_service: AdminService = Depends(get_admin_service),
 ):
     """
-    Reject a journalist's verification request.
+    Reject a vendor's verification request.
     """
     if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can reject journalist applications")
+        raise HTTPException(status_code=403, detail="Only admins can reject vendor applications")
     
     try:
         user = await admin_service.verify_user_verification(user_id, VerificationStatus.REJECTED, current_user.id, review_notes=review_notes)
-        return AdminReviewResponse(message="Journalist application rejected", status=user.journalist_profile.verification_status.value)
+        return AdminReviewResponse(message="Vendor application rejected", status=user.vendor_profile.verification_status.value) # Updated profile access
     except AdminError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
 @router.get("/listings/pending", response_model=List[AdminListingResponse])
-async def get_pending_listings(
+async def get_pending_vendor_listings( # Renamed from get_pending_listings
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     admin_service: AdminService = Depends(get_admin_service),
@@ -3918,7 +4495,7 @@ async def get_pending_listings(
     page_size: int = Query(20, ge=5, le=100),
 ):
     """
-    Get a list of support listings awaiting admin review.
+    Get a list of vendor listings awaiting admin review.
     """
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Only admins can manage listings")
@@ -3941,14 +4518,14 @@ async def get_pending_listings(
 
 
 @router.post("/listings/{listing_id}/approve", response_model=AdminReviewResponse)
-async def approve_listing(
+async def approve_vendor_listing( # Renamed from approve_listing
     listing_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     admin_service: AdminService = Depends(get_admin_service),
 ):
     """
-    Approve a support listing for publication.
+    Approve a vendor listing for publication.
     """
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Only admins can approve listings")
@@ -4079,7 +4656,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="Secure platform connecting whistleblowers with verified journalists",
+    description="Anonymous XMR Marketplace Platform", # Updated description
     debug=settings.DEBUG,
 )
 
@@ -4168,24 +4745,25 @@ async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
-) -> User:
+) -> Optional[User]: # Return Optional User for endpoints that don't require auth
     """
     Dependency to get the current authenticated user based on the session cookie.
+    Returns None if no valid session is found.
     """
     session_token = request.cookies.get("vault_session")
     
     if not session_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        return None # Not authenticated, return None
     
     auth_service = AuthService(db, redis)
     user = await auth_service.validate_session(session_token)
     
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid session token")
-    
-    # Optional: Update last seen timestamp here if not handled by auth_service.validate_session
-    # user.last_seen_at = datetime.now(timezone.utc)
-    # await db.flush()
+        # If session token is invalid, clear the cookie potentially
+        # response = Response()
+        # response.delete_cookie("vault_session")
+        # In a dependency, we just return None or raise HTTPException if required
+        return None # Or raise HTTPException(status_code=401, detail="Invalid session token") if auth is mandatory
     
     return user
 
@@ -4218,22 +4796,24 @@ def get_redis() -> Redis:
 # FILE: app/services/lead_service.py
 # ============================================================================
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update, asc, desc
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, func, update, asc, desc, join
+from sqlalchemy.orm import selectinload, aliased
 from typing import List, Tuple, Optional
 from uuid import UUID
 
 from app.models.lead import (
     Lead, LeadStatus, LeadCategory, EvidenceType, LeadInterest, InterestStatus
 )
-from app.models.user import User, UserRole
-from app.schemas.lead import LeadCreateRequest, LeadInterestRequest
+from app.models.user import User, UserRole, VendorProfile, BuyerProfile # Updated User models
+from app.models.opportunity import Opportunity, OpportunityInterest # Using the new models
+from app.models.opportunity import OpportunityStatus, OpportunityCategory # Updated enums
+from app.schemas.lead import LeadCreateRequest, LeadInterestRequest, LeadResponse, LeadListResponse, LeadInterestResponse # Updated schemas
 from app.services.pgp_service import pgp_service # Not directly used, but part of overall flow
 from app.services.auth_service import AuthenticationError # For error consistency
 
 
 class LeadError(Exception):
-    """Custom exception for lead-related errors."""
+    """Custom exception for opportunity-related errors."""
     
     def __init__(self, message: str, status_code: int = 400):
         self.message = message
@@ -4242,62 +4822,64 @@ class LeadError(Exception):
 
 
 class LeadService:
-    """Service for managing whistleblower leads."""
+    """Service for managing buyer opportunities."""
     
     def __init__(self, db: AsyncSession):
         self.db = db
     
-    async def create_lead(self, source_id: UUID, request: LeadCreateRequest) -> Lead:
-        """Create a new lead submission."""
+    async def create_opportunity(self, buyer_id: UUID, request: LeadCreateRequest) -> Lead:
+        """Create a new opportunity submission."""
         
         # Basic validation for enum values
-        if not hasattr(LeadCategory, request.category.upper()):
-            raise LeadError(f"Invalid lead category: {request.category}", status_code=422)
-        for et in request.evidence_types:
-            if not hasattr(EvidenceType, et.upper()):
-                raise LeadError(f"Invalid evidence type: {et}", status_code=422)
+        if not hasattr(OpportunityCategory, request.category.upper()):
+            raise LeadError(f"Invalid opportunity category: {request.category}", status_code=422)
+        for req in request.requirements:
+            # Assuming requirements is a list of strings, no enum validation needed here unless defined
+            pass 
         
-        lead = Lead(
-            source_id=source_id,
+        opportunity = Lead( # Using Lead model for now, might need refactor to Opportunity model later
+            buyer_id=buyer_id,
             title=request.title,
-            category=LeadCategory(request.category),
+            category=LeadCategory(request.category), # Using LeadCategory for now
             subcategory=request.subcategory,
-            summary=request.summary,
-            evidence_types=[EvidenceType(et) for et in request.evidence_types],
+            description=request.description,
+            requirements=[str(r) for r in request.requirements], # Ensure strings
             geographic_scope=request.geographic_scope,
-            time_sensitivity=request.time_sensitivity,
+            budget_usd=request.budget_usd,
             status=LeadStatus.DRAFT, # Starts as draft
+            # time_sensitivity: Mapped[Optional[str]] = mapped_column(String(20), nullable=True) # Keep this field
+            time_sensitivity=request.time_sensitivity,
         )
         
-        self.db.add(lead)
+        self.db.add(opportunity)
         await self.db.flush()
-        return lead
+        return opportunity
     
-    async def get_lead_by_id(self, lead_id: str) -> Lead:
-        """Retrieve a lead by its ID."""
-        stmt = select(Lead).where(Lead.id == lead_id)
+    async def get_opportunity(self, opportunity_id: str) -> Lead:
+        """Retrieve an opportunity by its ID."""
+        stmt = select(Lead).where(Lead.id == opportunity_id)
         result = await self.db.execute(stmt)
-        lead = result.scalar_one_or_none()
+        opportunity = result.scalar_one_or_none()
         
-        if not lead:
-            raise LeadError("Lead not found", status_code=404)
-        return lead
+        if not opportunity:
+            raise LeadError("Opportunity not found", status_code=404)
+        return opportunity
     
-    async def get_leads_for_source(
+    async def get_opportunities_for_buyer(
         self,
-        source_id: UUID,
+        buyer_id: UUID,
         page: int,
         page_size: int,
         category: Optional[LeadCategory],
         status: Optional[LeadStatus],
     ) -> Tuple[List[Lead], int]:
-        """Get leads submitted by a specific source."""
-        stmt = select(Lead).where(Lead.source_id == source_id)
+        """Get opportunities submitted by a specific buyer."""
+        stmt = select(Lead).where(Lead.buyer_id == buyer_id)
         
-        # Filter by status and category for sources (draft, submitted, under_review)
-        allowed_statuses = [LeadStatus.DRAFT, LeadStatus.SUBMITTED, LeadStatus.UNDER_REVIEW]
+        # Filter by status and category for buyers (draft, submitted, published, matched)
+        allowed_statuses = [LeadStatus.DRAFT, LeadStatus.SUBMITTED, LeadStatus.PUBLISHED, LeadStatus.MATCHED]
         if status and status not in allowed_statuses:
-            status = None # Ignore invalid status for sources
+            status = None # Ignore invalid status for buyers
         
         if status:
             stmt = stmt.where(Lead.status == status)
@@ -4316,21 +4898,21 @@ class LeadService:
         result = await self.db.execute(
             stmt.limit(page_size).offset((page - 1) * page_size)
         )
-        leads = result.scalars().all()
+        opportunities = result.scalars().all()
         
-        return leads, total
+        return opportunities, total
     
-    async def get_leads_for_journalist(
+    async def get_opportunities_for_vendor(
         self,
-        journalist_id: UUID,
-        page: int,
-        page_size: int,
-        category: Optional[LeadCategory],
-        status: Optional[LeadStatus],
+        vendor_id: Optional[UUID] = None, # Make optional for public browsing
+        page: int = 1,
+        page_size: int = 20,
+        category: Optional[LeadCategory] = None,
+        status: Optional[LeadStatus] = None,
     ) -> Tuple[List[Lead], int]:
-        """Get leads available for a journalist."""
+        """Get opportunities available for vendors."""
         stmt = select(Lead).where(
-            Lead.status.in_([LeadStatus.SUBMITTED, LeadStatus.UNDER_REVIEW, LeadStatus.PUBLISHED])
+            Lead.status.in_([LeadStatus.PUBLISHED, LeadStatus.MATCHED, LeadStatus.IN_PROGRESS])
         )
         
         if status:
@@ -4338,16 +4920,29 @@ class LeadService:
         if category:
             stmt = stmt.where(Lead.category == category)
         
-        # Exclude leads the journalist has already expressed interest in or is matched with
-        # This might be too strict; consider if journalists should see ALL available leads
-        # For now, let's allow them to see all available unless they've already acted.
-        # stmt = stmt.where(
-        #     ~Lead.id.in_(
-        #         select(LeadInterest.lead_id).where(
-        #             LeadInterest.journalist_id == journalist_id
-        #         )
-        #     )
-        # ).where(Lead.matched_journalist_id != journalist_id)
+        # If vendor_id is provided, exclude opportunities they've already applied to or matched with
+        if vendor_id:
+            stmt = stmt.where(
+                ~Lead.id.in_(
+                    select(LeadInterest.opportunity_id).where( # Updated FK name
+                        LeadInterest.vendor_id == vendor_id
+                    )
+                )
+            ).where(Lead.accepted_vendor_id != vendor_id)
+        
+        # Join with VendorProfile to get shop name and rating for the accepted vendor
+        # And join with User to get vendor username
+        vendor_user_alias = aliased(User)
+        vendor_profile_alias = aliased(VendorProfile)
+        
+        # For the accepted vendor
+        stmt = stmt.outerjoin(vendor_user_alias, Lead.accepted_vendor_id == vendor_user_alias.id)
+        stmt = stmt.outerjoin(vendor_profile_alias, vendor_user_alias.id == vendor_profile_alias.id)
+        
+        # Select only necessary columns for efficiency if needed
+        stmt = stmt.options(
+            selectinload(Lead.interests).joinedload(LeadInterest.vendor).joinedload(User.vendor_profile)
+        )
         
         stmt = stmt.order_by(desc(Lead.submitted_at))
         
@@ -4358,82 +4953,114 @@ class LeadService:
         result = await self.db.execute(
             stmt.limit(page_size).offset((page - 1) * page_size)
         )
-        leads = result.scalars().all()
+        opportunities = result.scalars().all()
         
-        return leads, total
-    
-    async def update_lead(
+        return opportunities, total
+
+    async def get_all_opportunities(
         self,
-        source_id: UUID,
-        lead_id: str,
+        page: int,
+        page_size: int,
+        category: Optional[LeadCategory],
+        status: Optional[LeadStatus],
+    ) -> Tuple[List[Lead], int]:
+        """ Get all opportunities, used by admins. """
+        stmt = select(Lead)
+        
+        if status:
+            stmt = stmt.where(Lead.status == status)
+        if category:
+            stmt = stmt.where(Lead.category == category)
+        
+        # Join with User and VendorProfile for accepted vendor info
+        vendor_user_alias = aliased(User)
+        vendor_profile_alias = aliased(VendorProfile)
+        stmt = stmt.outerjoin(vendor_user_alias, Lead.accepted_vendor_id == vendor_user_alias.id)
+        stmt = stmt.outerjoin(vendor_profile_alias, vendor_user_alias.id == vendor_profile_alias.id)
+
+        stmt = stmt.order_by(desc(Lead.submitted_at))
+        
+        total_stmt = stmt.with_only_columns(func.count()).order_by(None)
+        total_result = await self.db.execute(total_stmt)
+        total = total_result.scalar_one()
+        
+        result = await self.db.execute(
+            stmt.limit(page_size).offset((page - 1) * page_size)
+        )
+        opportunities = result.scalars().all()
+        
+        return opportunities, total
+    
+    async def update_opportunity(
+        self,
+        buyer_id: UUID,
+        opportunity_id: str,
         request: LeadCreateRequest,
     ) -> Lead:
-        """Update an existing lead owned by the source."""
-        lead = await self.get_lead_by_id(lead_id)
+        """Update an existing opportunity owned by the buyer."""
+        opportunity = await self.get_opportunity(opportunity_id)
         
-        if lead.source_id != source_id:
-            raise LeadError("Lead not found", status_code=404)
+        if opportunity.buyer_id != buyer_id:
+            raise LeadError("Opportunity not found", status_code=404)
         
-        if lead.status != LeadStatus.DRAFT:
-            raise LeadError("Lead can only be updated in draft status", status_code=400)
+        if opportunity.status != LeadStatus.DRAFT:
+            raise LeadError("Opportunity can only be updated in draft status", status_code=400)
         
-        # Basic validation for enum values
+        # Validate category
         if not hasattr(LeadCategory, request.category.upper()):
-            raise LeadError(f"Invalid lead category: {request.category}", status_code=422)
-        for et in request.evidence_types:
-            if not hasattr(EvidenceType, et.upper()):
-                raise LeadError(f"Invalid evidence type: {et}", status_code=422)
+            raise LeadError(f"Invalid opportunity category: {request.category}", status_code=422)
         
-        lead.title = request.title
-        lead.category = LeadCategory(request.category)
-        lead.subcategory = request.subcategory
-        lead.summary = request.summary
-        lead.evidence_types = [EvidenceType(et) for et in request.evidence_types]
-        lead.geographic_scope = request.geographic_scope
-        lead.time_sensitivity = request.time_sensitivity
+        opportunity.title = request.title
+        opportunity.category = LeadCategory(request.category)
+        opportunity.subcategory = request.subcategory
+        opportunity.description = request.description
+        opportunity.requirements = [str(r) for r in request.requirements]
+        opportunity.geographic_scope = request.geographic_scope
+        opportunity.budget_usd = request.budget_usd
+        opportunity.time_sensitivity = request.time_sensitivity
         
         await self.db.flush()
-        return lead
+        return opportunity
     
-    async def submit_lead(self, source_id: UUID, lead_id: str) -> Lead:
-        """Submit a lead for admin review."""
-        lead = await self.get_lead_by_id(lead_id)
+    async def submit_opportunity(self, buyer_id: UUID, opportunity_id: str) -> Lead:
+        """Submit an opportunity for admin review."""
+        opportunity = await self.get_opportunity(opportunity_id)
         
-        if lead.source_id != source_id:
-            raise LeadError("Lead not found", status_code=404)
+        if opportunity.buyer_id != buyer_id:
+            raise LeadError("Opportunity not found", status_code=404)
         
-        if lead.status != LeadStatus.DRAFT:
-            raise LeadError("Lead is not in draft status and cannot be submitted", status_code=400)
+        if opportunity.status != LeadStatus.DRAFT:
+            raise LeadError("Opportunity is not in draft status and cannot be submitted", status_code=400)
         
-        lead.status = LeadStatus.SUBMITTED
-        lead.submitted_at = datetime.now(timezone.utc)
+        opportunity.status = LeadStatus.SUBMITTED
+        opportunity.submitted_at = datetime.now(timezone.utc)
         
         await self.db.flush()
-        return lead
+        return opportunity
     
     async def express_interest(
         self,
-        journalist_id: UUID,
-        lead_id: str,
+        vendor_id: UUID,
+        opportunity_id: str,
         request: LeadInterestRequest,
     ) -> LeadInterest:
-        """Journalist expresses interest in a lead."""
-        lead = await self.get_lead_by_id(lead_id)
+        """Vendor expresses interest in an opportunity."""
+        opportunity = await self.get_opportunity(opportunity_id)
         
-        # Check if lead is available for journalists
-        if lead.status not in [LeadStatus.SUBMITTED, LeadStatus.UNDER_REVIEW]:
-            raise LeadError("Lead is not available for interest expression", status_code=400)
+        # Check if opportunity is available for vendors
+        if opportunity.status not in [LeadStatus.PUBLISHED]: # Only published opportunities can receive interest
+            raise LeadError("Opportunity is not available for interest expression", status_code=400)
         
         # Check if already expressed interest or matched
-        existing_interest = await self.get_interest_by_lead_and_journalist(lead_id, journalist_id)
+        existing_interest = await self.get_interest_by_opportunity_and_vendor(opportunity_id, vendor_id)
         if existing_interest and existing_interest.status in [InterestStatus.ACCEPTED, InterestStatus.PENDING]:
-            raise LeadError("You have already expressed interest in this lead", status_code=409)
-        if lead.matched_journalist_id == journalist_id:
-            raise LeadError("You are already matched with this lead", status_code=409)
+            raise LeadError("You have already expressed interest in this opportunity", status_code=409)
+        if opportunity.accepted_vendor_id == vendor_id:
+            raise LeadError("You are already the accepted vendor for this opportunity", status_code=409)
             
         interest = LeadInterest(
-            lead_id=lead.id,
-            journalist_id=journalist_id,
+            opportunity_id=opportunity.id, # Updated FK name
+            vendor_id=vendor_id,
             pitch=request.pitch,
             status=InterestStatus.PENDING,
         )
@@ -4442,94 +5069,94 @@ class LeadService:
         await self.db.flush()
         return interest
     
-    async def get_interest_by_lead_and_journalist(self, lead_id: str, journalist_id: UUID) -> Optional[LeadInterest]:
+    async def get_interest_by_opportunity_and_vendor(self, opportunity_id: str, vendor_id: UUID) -> Optional[LeadInterest]:
         """Retrieve a specific interest entry."""
         stmt = select(LeadInterest).where(
-            LeadInterest.lead_id == lead_id,
-            LeadInterest.journalist_id == journalist_id,
+            LeadInterest.opportunity_id == opportunity_id, # Updated FK name
+            LeadInterest.vendor_id == vendor_id,
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
-    async def get_interests_for_lead(self, lead_id: str) -> List[LeadInterest]:
-        """Get all interest expressions for a lead."""
-        stmt = select(LeadInterest).where(LeadInterest.lead_id == lead_id)
+    async def get_interests_for_opportunity(self, opportunity_id: str) -> List[LeadInterest]:
+        """Get all interest expressions for an opportunity."""
+        stmt = select(LeadInterest).where(LeadInterest.opportunity_id == opportunity_id) # Updated FK name
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
     # --- Model conversion methods ---
     
-    def model_to_response(self, lead: Lead) -> dict:
-        """Convert Lead model to response schema."""
+    def model_to_response(self, opportunity: Lead) -> LeadResponse:
+        """Convert Lead (Opportunity) model to response schema."""
         from app.schemas.lead import LeadResponse
         
-        # Fetch journalist info if matched
-        journalist_username = None
-        organization = None
-        organization_verified = False
-        beat = None
+        # Fetch accepted vendor info if matched
+        accepted_vendor_username = None
+        accepted_vendor_shop_name = None
+        accepted_vendor_alias = None
+        vendor_interest_status = None
         
-        if lead.matched_journalist_id:
-            from app.models.user import JournalistProfile # Local import for schema conversion
-            stmt = select(User.username, JournalistProfile.organization, JournalistProfile.organization_verified, JournalistProfile.beat).join(
-                JournalistProfile, User.id == JournalistProfile.id
-            ).where(User.id == lead.matched_journalist_id)
-            result = self.db.execute(stmt) # Note: This execute should ideally be awaited in an async context. For schema conversion, we might pass in already loaded data or handle it differently.
-            # This is a placeholder, actual async execution is needed.
-            # For simplicity in this example, assuming it's handled correctly elsewhere or data is pre-fetched.
-            # In a real app, this query needs to be awaited.
-            # For now, let's mock it assuming journalist data is available.
+        if opportunity.accepted_vendor_id:
+            # Load vendor details if available
+            vendor_user = None
+            if hasattr(opportunity, 'vendor') and opportunity.vendor:
+                 vendor_user = opportunity.vendor
             
-            # Mock data for schema conversion if not awaited:
-            # journalist_data = await self.db.execute(...)
+            if vendor_user:
+                accepted_vendor_username = vendor_user.username
+                if vendor_user.vendor_profile:
+                    accepted_vendor_shop_name = vendor_user.vendor_profile.shop_name
             
-            # Example using placeholder:
-            # if journalist_data:
-            #     journalist_username, organization, organization_verified, beat = journalist_data
-            pass # Placeholder for actual query execution
+            # Check interest status if vendor is accepted
+            if opportunity.accepted_vendor_id:
+                 # Need to fetch the specific interest to get status
+                 # This requires another query or pre-loading; simplified here
+                 pass # Placeholder for fetching interest status
 
         return LeadResponse(
-            id=str(lead.id),
-            title=lead.title,
-            category=lead.category.value,
-            subcategory=lead.subcategory,
-            summary=lead.summary,
-            evidence_types=[et.value for et in lead.evidence_types],
-            geographic_scope=lead.geographic_scope,
-            time_sensitivity=lead.time_sensitivity,
-            status=lead.status.value,
-            submitted_at=lead.submitted_at.isoformat() if lead.submitted_at else None,
-            created_at=lead.created_at.isoformat(),
-            # matched_journalist=journalist_username,
-            # matched_journalist_org=organization,
-            # matched_journalist_org_verified=organization_verified,
-            # matched_journalist_beat=beat,
+            id=str(opportunity.id),
+            title=opportunity.title,
+            category=opportunity.category.value,
+            subcategory=opportunity.subcategory,
+            description=opportunity.description,
+            requirements=[str(r) for r in opportunity.requirements],
+            geographic_scope=opportunity.geographic_scope,
+            budget_usd=opportunity.budget_usd,
+            time_sensitivity=opportunity.time_sensitivity,
+            status=opportunity.status.value,
+            submitted_at=opportunity.submitted_at.isoformat() if opportunity.submitted_at else None,
+            created_at=opportunity.created_at.isoformat(),
+            
+            vendor_interest_status=vendor_interest_status,
+            accepted_vendor_username=accepted_vendor_username,
+            accepted_vendor_shop_name=accepted_vendor_shop_name,
+            accepted_vendor_alias=accepted_vendor_alias,
         )
     
-    def interest_model_to_response(self, interest: LeadInterest) -> dict:
+    def interest_model_to_response(self, interest: LeadInterest) -> LeadInterestResponse:
         """Convert LeadInterest model to response schema."""
         from app.schemas.lead import LeadInterestResponse
-        from app.models.user import JournalistProfile # Local import
         
-        # Fetch journalist profile details
-        journalist_username = interest.journalist.username if hasattr(interest, 'journalist') and interest.journalist else "Unknown"
-        organization = None
-        organization_verified = False
-        beat = None
+        vendor_username = "Unknown"
+        vendor_shop_name = None
+        vendor_categories = None
+        vendor_rating = 0.0
         
-        if hasattr(interest, 'journalist') and interest.journalist and hasattr(interest.journalist, 'journalist_profile') and interest.journalist.journalist_profile:
-            org_profile = interest.journalist.journalist_profile
-            organization = org_profile.organization
-            organization_verified = org_profile.organization_verified
-            beat = org_profile.beat
+        if interest.vendor:
+            vendor_username = interest.vendor.username
+            if interest.vendor.vendor_profile:
+                vendor_shop_name = interest.vendor.vendor_profile.shop_name
+                vendor_categories = interest.vendor.vendor_profile.categories
+                vendor_rating = interest.vendor.vendor_profile.rating
         
         return LeadInterestResponse(
             interest_id=str(interest.id),
-            journalist_username=journalist_username,
-            organization=organization,
-            organization_verified=organization_verified,
-            beat=beat,
+            vendor_username=vendor_username,
+            vendor_shop_name=vendor_shop_name,
+            vendor_categories=vendor_categories,
+            vendor_rating=vendor_rating,
             pitch=interest.pitch,
+            status=interest.status.value,
             created_at=interest.created_at.isoformat(),
         )
 
@@ -4546,7 +5173,7 @@ import hashlib
 
 from app.models.message import Conversation, Message
 from app.models.user import User, UserRole # For role checks and user details
-from app.models.lead import Lead # To fetch lead titles
+from app.models.lead import Lead # To fetch opportunity titles
 from app.services.pgp_service import pgp_service
 from app.services.auth_service import AuthenticationError # For error consistency
 from app.schemas.message import ConversationResponse, MessageResponse, ConversationDetailResponse
@@ -4581,7 +5208,7 @@ class MessageService:
                 selectinload(Conversation.messages) # To get unread count
             )
             .where(
-                (Conversation.source_id == user_id) | (Conversation.journalist_id == user_id)
+                (Conversation.buyer_id == user_id) | (Conversation.vendor_id == user_id) # Updated FK names
             )
             .order_by(desc(Conversation.last_message_at)) # Order by most recent message
         )
@@ -4625,7 +5252,7 @@ class MessageService:
         # Verify conversation exists and sender is part of it
         conversation = await self.get_conversation_by_id(conversation_id)
         
-        if conversation.source_id != sender_id and conversation.journalist_id != sender_id:
+        if conversation.buyer_id != sender_id and conversation.vendor_id != sender_id: # Updated FK names
             raise MessageError("Sender is not part of this conversation", status_code=403)
         
         if conversation.closed_at:
@@ -4633,7 +5260,7 @@ class MessageService:
         
         # Basic content validation (assuming PGP format)
         if not encrypted_content.startswith("-----BEGIN PGP MESSAGE-----"):
-             raise MessageError("Invalid encrypted content format", status_code=422)
+             raise MessageError("Invalid message format", status_code=422)
         
         # Calculate hash if not provided or mismatch
         calculated_hash = hashlib.sha256(encrypted_content.encode()).hexdigest()
@@ -4664,7 +5291,7 @@ class MessageService:
         """Mark all unread messages in a conversation as read for the user."""
         # Get conversation to check user participation
         conversation = await self.get_conversation_by_id(conversation_id)
-        if not (conversation.source_id == user_id or conversation.journalist_id == user_id):
+        if not (conversation.buyer_id == user_id or conversation.vendor_id == user_id): # Updated FK names
             return # User is not part of this conversation
         
         # Update messages where the sender is NOT the current user and they are unread
@@ -4684,32 +5311,27 @@ class MessageService:
         self,
         conversation: Conversation,
         current_user_id: UUID,
-        lead_title: Optional[str] = None,
+        opportunity_title: Optional[str] = None, # Updated parameter name
     ) -> ConversationResponse:
         """Convert Conversation model to response schema."""
         from app.schemas.message import ConversationResponse
         
         # Determine the other party
         other_party = None
-        if conversation.source_id == current_user_id:
-            # Current user is source, other is journalist
-            # Fetch journalist details if available
-            other_party = getattr(conversation, 'journalist', None)
-            if not other_party and hasattr(conversation, 'journalist_user'): # If joined query
-                 other_party = conversation.journalist_user
-
-        elif conversation.journalist_id == current_user_id:
-            # Current user is journalist, other is source
-            # Fetch source details if available
-            other_party = getattr(conversation, 'source', None)
-            if not other_party and hasattr(conversation, 'source_user'): # If joined query
-                 other_party = conversation.source_user
-                 
-        other_party_username = "Unknown"
         other_party_role = ""
-        if other_party:
-            other_party_username = other_party.username
-            other_party_role = other_party.role.value
+        
+        if conversation.buyer_id == current_user_id:
+            # Current user is buyer, other is vendor
+            other_party = getattr(conversation, 'vendor', None)
+            if other_party:
+                other_party_role = other_party.role.value
+        elif conversation.vendor_id == current_user_id:
+            # Current user is vendor, other is buyer
+            other_party = getattr(conversation, 'buyer', None)
+            if other_party:
+                other_party_role = other_party.role.value
+        
+        other_party_username = other_party.username if other_party else "Unknown"
         
         # Calculate unread count
         unread_count = 0
@@ -4720,8 +5342,8 @@ class MessageService:
         
         return ConversationResponse(
             id=str(conversation.id),
-            lead_id=str(conversation.lead_id) if conversation.lead_id else None,
-            lead_title=lead_title,
+            opportunity_id=str(conversation.opportunity_id) if conversation.opportunity_id else None, # Updated field name
+            opportunity_title=opportunity_title, # Use passed title
             other_party_username=other_party_username,
             other_party_role=other_party_role,
             last_message_at=conversation.last_message_at.isoformat() if conversation.last_message_at else None,
@@ -4741,6 +5363,7 @@ class MessageService:
         return MessageResponse(
             id=str(message.id),
             sender_username=sender_username,
+            sender_id=str(message.sender_id),
             is_mine=(message.sender_id == current_user_id),
             encrypted_content=message.encrypted_content,
             content_hash=message.content_hash,
@@ -4760,14 +5383,18 @@ from uuid import UUID
 import re # For slug generation
 
 from app.models.listing import (
-    SupportListing, ListingStatus, ListingCategory, SupportTier,
-    SupportContribution, ContributionStatus, SupporterWall, ListingUpdate
+    SupportListing, ListingStatus, ListingCategory, SupportTier, # Renamed models
+    SupportContribution, ContributionStatus, Review, ListingUpdate
 )
-from app.models.user import User, UserRole
+from app.models.listing import VendorListing, VendorTier, Transaction, Review, ListingUpdate # Import new models
+from app.models.user import User, UserRole, VendorProfile # Import User and VendorProfile
 from app.schemas.listing import (
-    ListingCreateRequest, TierCreateRequest
+    ListingCreateRequest, ListingResponse, TierCreateRequest,
+    TierResponse, ContributionCreateRequest, ContributionResponse,
+    ReviewResponse, ListingUpdateResponse
 )
 from app.services.pgp_service import pgp_service # Not directly used, but for context
+from app.services.monero_service import MoneroService, monero_service # For XMR amounts
 
 
 class ListingError(Exception):
@@ -4780,13 +5407,13 @@ class ListingError(Exception):
 
 
 class ListingService:
-    """Service for managing support listings."""
+    """Service for managing vendor listings."""
     
     def __init__(self, db: AsyncSession):
         self.db = db
     
-    async def create_listing(self, source_id: UUID, request: ListingCreateRequest) -> SupportListing:
-        """Create a new support listing."""
+    async def create_vendor_listing(self, vendor_id: UUID, request: ListingCreateRequest) -> VendorListing:
+        """Create a new vendor listing."""
         
         # Validate category
         if not hasattr(ListingCategory, request.category.upper()):
@@ -4795,17 +5422,16 @@ class ListingService:
         # Generate slug
         slug = self._generate_slug(request.title)
         
-        listing = SupportListing(
-            source_id=source_id,
+        listing = VendorListing(
+            vendor_id=vendor_id,
             title=request.title,
             slug=slug,
             category=ListingCategory(request.category),
             headline=request.headline,
-            story=request.story,
+            description=request.description, # Renamed from story
             disclosure_summary=request.disclosure_summary,
             risk_description=request.risk_description,
-            funding_goal_usd=request.funding_goal_usd,
-            funding_deadline=request.funding_deadline,
+            price_usd_cents=request.price_usd_cents, # Use fixed price from request
             status=ListingStatus.DRAFT, # Starts as draft
         )
         
@@ -4813,9 +5439,9 @@ class ListingService:
         await self.db.flush()
         return listing
     
-    async def get_listing_by_id(self, listing_id: str) -> SupportListing:
+    async def get_listing_by_id(self, listing_id: str) -> VendorListing:
         """Retrieve a listing by its ID."""
-        stmt = select(SupportListing).where(SupportListing.id == listing_id)
+        stmt = select(VendorListing).where(VendorListing.id == listing_id)
         result = await self.db.execute(stmt)
         listing = result.scalar_one_or_none()
         
@@ -4823,9 +5449,9 @@ class ListingService:
             raise ListingError("Listing not found", status_code=404)
         return listing
     
-    async def get_listing_by_slug(self, slug: str) -> SupportListing:
+    async def get_listing_by_slug(self, slug: str) -> VendorListing:
         """Retrieve a listing by its slug."""
-        stmt = select(SupportListing).where(SupportListing.slug == slug)
+        stmt = select(VendorListing).where(VendorListing.slug == slug)
         result = await self.db.execute(stmt)
         listing = result.scalar_one_or_none()
         
@@ -4840,18 +5466,31 @@ class ListingService:
         category: Optional[ListingCategory] = None,
         status: Optional[ListingStatus] = None,
         verified_by_admin: Optional[bool] = None,
-    ) -> Tuple[List[SupportListing], int]:
+    ) -> Tuple[List[VendorListing], int]:
         """Get a list of listings with optional filters."""
-        stmt = select(SupportListing)
+        stmt = select(VendorListing)
         
+        # Join with VendorProfile and User to get vendor details
+        vendor_user_alias = aliased(User)
+        vendor_profile_alias = aliased(VendorProfile)
+        stmt = stmt.outerjoin(vendor_user_alias, VendorListing.vendor_id == vendor_user_alias.id)
+        stmt = stmt.outerjoin(vendor_profile_alias, vendor_user_alias.id == vendor_profile_alias.id)
+        
+        # Apply filters
         if status:
-            stmt = stmt.where(SupportListing.status == status)
+            stmt = stmt.where(VendorListing.status == status)
         if category:
-            stmt = stmt.where(SupportListing.category == category)
+            stmt = stmt.where(VendorListing.category == category)
         if verified_by_admin is not None:
-            stmt = stmt.where(SupportListing.verified_by_admin == verified_by_admin)
+            stmt = stmt.where(VendorListing.verified_by_admin == verified_by_admin)
         
-        stmt = stmt.order_by(desc(SupportListing.published_at), desc(SupportListing.created_at))
+        # Order by vendor status/rating if available, then creation date
+        stmt = stmt.order_by(
+            desc(VendorListing.verified_by_admin), # Verified first
+            desc(vendor_profile_alias.rating.if_(0.0)), # Highest rated first
+            desc(VendorListing.published_at),
+            desc(VendorListing.created_at)
+        )
         
         total_stmt = stmt.with_only_columns(func.count()).order_by(None)
         total_result = await self.db.execute(total_stmt)
@@ -4864,23 +5503,29 @@ class ListingService:
         
         return listings, total
     
-    async def get_listings_for_source(
+    async def get_listings_for_vendor(
         self,
-        source_id: UUID,
+        vendor_id: UUID,
         page: int,
         page_size: int,
         category: Optional[ListingCategory],
         status: Optional[ListingStatus],
-    ) -> Tuple[List[SupportListing], int]:
-        """Get listings submitted by a specific source."""
-        stmt = select(SupportListing).where(SupportListing.source_id == source_id)
+    ) -> Tuple[List[VendorListing], int]:
+        """Get listings submitted by a specific vendor."""
+        stmt = select(VendorListing).where(VendorListing.vendor_id == vendor_id)
         
         if status:
-            stmt = stmt.where(SupportListing.status == status)
+            stmt = stmt.where(VendorListing.status == status)
         if category:
-            stmt = stmt.where(SupportListing.category == category)
+            stmt = stmt.where(VendorListing.category == category)
         
-        stmt = stmt.order_by(desc(SupportListing.published_at), desc(SupportListing.created_at))
+        # Join with VendorProfile and User for vendor details in response
+        vendor_user_alias = aliased(User)
+        vendor_profile_alias = aliased(VendorProfile)
+        stmt = stmt.outerjoin(vendor_user_alias, VendorListing.vendor_id == vendor_user_alias.id)
+        stmt = stmt.outerjoin(vendor_profile_alias, vendor_user_alias.id == vendor_profile_alias.id)
+        
+        stmt = stmt.order_by(desc(VendorListing.published_at), desc(VendorListing.created_at))
         
         total_stmt = stmt.with_only_columns(func.count()).order_by(None)
         total_result = await self.db.execute(total_stmt)
@@ -4893,16 +5538,16 @@ class ListingService:
         
         return listings, total
     
-    async def update_listing(
+    async def update_vendor_listing(
         self,
-        source_id: UUID,
+        vendor_id: UUID,
         listing_id: str,
         request: ListingCreateRequest,
-    ) -> SupportListing:
-        """Update an existing listing owned by the source."""
+    ) -> VendorListing:
+        """Update an existing vendor listing."""
         listing = await self.get_listing_by_id(listing_id)
         
-        if listing.source_id != source_id:
+        if listing.vendor_id != vendor_id:
             raise ListingError("Listing not found", status_code=404)
         
         if listing.status not in [ListingStatus.DRAFT, ListingStatus.PENDING_REVIEW]:
@@ -4919,20 +5564,19 @@ class ListingService:
         listing.title = request.title
         listing.category = ListingCategory(request.category)
         listing.headline = request.headline
-        listing.story = request.story
+        listing.description = request.description
         listing.disclosure_summary = request.disclosure_summary
         listing.risk_description = request.risk_description
-        listing.funding_goal_usd = request.funding_goal_usd
-        listing.funding_deadline = request.funding_deadline
+        listing.price_usd_cents = request.price_usd_cents
         
         await self.db.flush()
         return listing
     
-    async def submit_listing(self, source_id: UUID, listing_id: str) -> SupportListing:
+    async def submit_listing(self, vendor_id: UUID, listing_id: str) -> VendorListing:
         """Submit a listing for admin review."""
         listing = await self.get_listing_by_id(listing_id)
         
-        if listing.source_id != source_id:
+        if listing.vendor_id != vendor_id:
             raise ListingError("Listing not found", status_code=404)
         
         if listing.status != ListingStatus.DRAFT:
@@ -4943,29 +5587,29 @@ class ListingService:
         await self.db.flush()
         return listing
     
-    async def add_tier(
+    async def add_vendor_tier(
         self,
-        source_id: UUID,
+        vendor_id: UUID,
         listing_id: str,
         request: TierCreateRequest,
-    ) -> SupportTier:
-        """Add a new support tier to a listing."""
+    ) -> VendorTier:
+        """Add a new tier to a vendor listing."""
         listing = await self.get_listing_by_id(listing_id)
         
-        if listing.source_id != source_id:
+        if listing.vendor_id != vendor_id:
             raise ListingError("Listing not found", status_code=404)
         
         if listing.status != ListingStatus.DRAFT:
             raise ListingError("Tiers can only be added to listings in draft status", status_code=400)
         
-        tier = SupportTier(
+        tier = VendorTier(
             listing_id=listing.id,
             name=request.name,
             description=request.description,
             amount_usd=request.amount_usd,
             perks=request.perks or [],
             is_highlighted=request.is_highlighted,
-            max_supporters=request.max_supporters,
+            max_purchasers=request.max_purchasers,
             sort_order=await self.get_next_tier_sort_order(listing_id),
         )
         
@@ -4975,14 +5619,14 @@ class ListingService:
     
     async def get_next_tier_sort_order(self, listing_id: UUID) -> int:
         """Get the next available sort order for a tier."""
-        stmt = select(func.max(SupportTier.sort_order)).where(SupportTier.listing_id == listing_id)
+        stmt = select(func.max(VendorTier.sort_order)).where(VendorTier.listing_id == listing_id)
         result = await self.db.execute(stmt)
         max_order = result.scalar_one_or_none()
         return (max_order or 0) + 1
     
-    async def get_tier_by_id(self, tier_id: str) -> SupportTier:
+    async def get_vendor_tier_by_id(self, tier_id: str) -> VendorTier:
         """Retrieve a tier by its ID."""
-        stmt = select(SupportTier).where(SupportTier.id == tier_id)
+        stmt = select(VendorTier).where(VendorTier.id == tier_id)
         result = await self.db.execute(stmt)
         tier = result.scalar_one_or_none()
         
@@ -4990,19 +5634,19 @@ class ListingService:
             raise ListingError("Tier not found", status_code=404)
         return tier
     
-    async def update_tier(
+    async def update_vendor_tier(
         self,
-        source_id: UUID,
+        vendor_id: UUID,
         listing_id: str,
         tier_id: str,
         request: TierCreateRequest,
-    ) -> SupportTier:
-        """Update an existing support tier."""
+    ) -> VendorTier:
+        """Update an existing vendor tier."""
         listing = await self.get_listing_by_id(listing_id)
-        if listing.source_id != source_id:
+        if listing.vendor_id != vendor_id:
             raise ListingError("Listing not found", status_code=404)
         
-        tier = await self.get_tier_by_id(tier_id)
+        tier = await self.get_vendor_tier_by_id(tier_id)
         if tier.listing_id != listing.id:
             raise ListingError("Tier does not belong to this listing", status_code=400)
         
@@ -5014,74 +5658,117 @@ class ListingService:
         tier.amount_usd = request.amount_usd
         tier.perks = request.perks or []
         tier.is_highlighted = request.is_highlighted
-        tier.max_supporters = request.max_supporters
+        tier.max_purchasers = request.max_purchasers
         
         await self.db.flush()
         return tier
     
-    async def get_tiers_for_listing(self, listing_id: UUID) -> List[SupportTier]:
-        """Get all tiers associated with a listing."""
-        stmt = select(SupportTier).where(SupportTier.listing_id == listing_id)
-        stmt = stmt.order_by(asc(SupportTier.sort_order))
+    async def get_tiers_for_listing(self, listing_id: UUID) -> List[VendorTier]:
+        """Get all tiers associated with a vendor listing."""
+        stmt = select(VendorTier).where(VendorTier.listing_id == listing_id)
+        stmt = stmt.order_by(asc(VendorTier.sort_order))
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
-    async def get_supporters_for_listing(self, listing_id: UUID) -> List[SupporterWall]:
-        """Get public supporter wall entries for a listing."""
-        stmt = select(SupporterWall).where(SupporterWall.listing_id == listing_id)
-        stmt = stmt.order_by(desc(SupporterWall.is_featured), desc(SupporterWall.created_at))
+    async def get_reviews_for_listing(self, listing_id: UUID) -> List[Review]:
+        """Get all reviews for a vendor listing."""
+        stmt = select(Review).where(Review.listing_id == listing_id)
+        stmt = stmt.order_by(desc(Review.created_at))
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
     async def get_updates_for_listing(self, listing_id: UUID) -> List[ListingUpdate]:
-        """Get all updates for a listing."""
+        """Get all updates for a vendor listing."""
         stmt = select(ListingUpdate).where(ListingUpdate.listing_id == listing_id)
         stmt = stmt.order_by(desc(ListingUpdate.created_at))
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
-    async def create_contribution(
+    async def create_transaction(
         self,
         listing_id: UUID,
+        vendor_id: UUID,
         tier_id: Optional[UUID],
-        supporter_user_id: Optional[UUID],
-        supporter_alias: Optional[str],
-        is_anonymous: bool,
+        buyer_user_id: Optional[UUID],
+        buyer_alias: Optional[str],
+        is_anonymous_buyer: bool,
         encrypted_message: Optional[str],
         deposit_id: UUID,
         amount_usd_cents: int,
         amount_xmr_atomic: int,
         exchange_rate_used: str,
-    ) -> SupportContribution:
-        """Create a record for a new contribution."""
-        contribution = SupportContribution(
+    ) -> Transaction:
+        """Create a record for a new transaction."""
+        transaction = Transaction(
             listing_id=listing_id,
+            vendor_id=vendor_id,
             tier_id=tier_id,
-            supporter_user_id=supporter_user_id,
-            supporter_alias=supporter_alias,
-            is_anonymous=is_anonymous,
+            buyer_user_id=buyer_user_id,
+            buyer_alias=buyer_alias,
+            is_anonymous_buyer=is_anonymous_buyer,
             encrypted_message=encrypted_message,
             deposit_id=deposit_id,
             amount_usd_cents=amount_usd_cents,
             amount_xmr_atomic=amount_xmr_atomic,
             exchange_rate_used=exchange_rate_used,
-            status=ContributionStatus.PENDING,
+            status=ContributionStatus.PENDING, # Reusing enum
         )
-        self.db.add(contribution)
+        self.db.add(transaction)
         await self.db.flush()
-        return contribution
+        return transaction
     
-    async def add_update(
+    async def confirm_contribution( # This method relates to transactions now
         self,
-        source_id: UUID,
+        deposit_id: UUID,
+        tx_hash: str,
+        confirmed_at: datetime,
+        received_amount_atomic: int,
+        listing_id: UUID,
+        tier_id: UUID,
+    ) -> None:
+        """Mark a transaction (contribution) as confirmed."""
+        # Find the transaction associated with the deposit
+        stmt = select(Transaction).where(Transaction.deposit_id == deposit_id)
+        result = await self.db.execute(stmt)
+        transaction = result.scalar_one_or_none()
+        
+        if not transaction:
+            # Log this potential issue - deposit confirmed but no transaction found
+            print(f"Warning: Deposit {deposit_id} confirmed, but no associated transaction found for listing {listing_id}, tier {tier_id}.")
+            return
+        
+        # Update transaction status and details
+        transaction.status = ContributionStatus.CONFIRMED
+        transaction.confirmed_at = confirmed_at
+        transaction.tx_hash = tx_hash
+        # received_amount_atomic should match expected amount ideally, but we store it here too
+        transaction.received_amount_atomic = received_amount_atomic # Store actual received amount
+        
+        # Update listing totals
+        listing = await self.get_listing_by_id(str(listing_id))
+        if listing:
+            listing.total_raised_atomic += received_amount_atomic # Use actual received amount
+            listing.supporter_count += 1 # Increment purchaser count
+            
+            # Update tier purchaser count if tier specified
+            if tier_id:
+                tier = await self.get_vendor_tier_by_id(str(tier_id))
+                if tier:
+                    tier.current_purchasers += 1
+        
+        await self.db.flush()
+    
+    async def add_listing_update(
+        self,
+        vendor_id: UUID,
         listing_id: str,
         title: str,
         content: str,
         minimum_tier_amount: int,
     ) -> ListingUpdate:
-        """Add a progress update to a listing."""
+        """Add a progress update to a vendor listing."""
         listing = await self.get_listing_by_id(listing_id)
-        if listing.source_id != source_id:
+        if listing.vendor_id != vendor_id:
             raise ListingError("Listing not found", status_code=404)
         
         if listing.status not in [ListingStatus.ACTIVE, ListingStatus.PAUSED]:
@@ -5100,9 +5787,9 @@ class ListingService:
     async def increment_view_count(self, listing_id: UUID):
         """Increment the view count for a listing."""
         stmt = (
-            update(SupportListing)
-            .where(SupportListing.id == listing_id)
-            .values(view_count=SupportListing.view_count + 1)
+            update(VendorListing) # Use VendorListing model
+            .where(VendorListing.id == listing_id)
+            .values(view_count=VendorListing.view_count + 1)
         )
         await self.db.execute(stmt)
         await self.db.flush()
@@ -5116,15 +5803,20 @@ class ListingService:
     
     # --- Model conversion methods ---
     
-    def model_to_response(self, listing: SupportListing) -> dict:
-        """Convert SupportListing model to response schema."""
+    def model_to_response(self, listing: VendorListing) -> ListingResponse:
+        """Convert VendorListing model to response schema."""
         from app.schemas.listing import ListingResponse
-        from app.services.monero_service import monero_service
+        from app.services.monero_service import monero_service # For display purposes
         
-        # Calculate progress percent
-        progress_percent = 0
-        if listing.funding_goal_usd and listing.funding_goal_usd > 0:
-            progress_percent = min(100, int((listing.total_raised_atomic / listing.funding_goal_usd * 100) if listing.funding_goal_usd else 0)) # Assuming goal is in cents
+        vendor_username = "Unknown"
+        vendor_shop_name = None
+        vendor_rating = 0.0
+        
+        if listing.vendor:
+            vendor_username = listing.vendor.username
+            if listing.vendor.vendor_profile:
+                vendor_shop_name = listing.vendor.vendor_profile.shop_name
+                vendor_rating = listing.vendor.vendor_profile.rating
         
         return ListingResponse(
             id=str(listing.id),
@@ -5132,24 +5824,23 @@ class ListingService:
             title=listing.title,
             category=listing.category.value,
             headline=listing.headline,
-            story=listing.story,
+            description=listing.description,
             disclosure_summary=listing.disclosure_summary,
             risk_description=listing.risk_description,
-            funding_goal_usd=listing.funding_goal_usd,
-            total_raised_xmr=f"{monero_service.atomic_to_xmr(listing.total_raised_atomic):.8f}",
-            supporter_count=listing.supporter_count,
-            view_count=listing.view_count,
-            progress_percent=progress_percent,
+            price_usd_cents=listing.price_usd_cents,
+            price_usd_display=f"${listing.price_usd_cents / 100.0:.2f}" if listing.price_usd_cents else None,
             verified=listing.verified_by_admin,
             status=listing.status.value,
             created_at=listing.created_at.isoformat(),
             published_at=listing.published_at.isoformat() if listing.published_at else None,
+            vendor_username=vendor_username,
+            vendor_shop_name=vendor_shop_name,
+            vendor_rating=vendor_rating,
         )
     
-    def tier_to_response(self, tier: SupportTier) -> dict:
-        """Convert SupportTier model to response schema."""
+    def tier_to_response(self, tier: VendorTier) -> TierResponse:
+        """Convert VendorTier model to response schema."""
         from app.schemas.listing import TierResponse
-        from app.services.monero_service import monero_service # For display purposes
         
         return TierResponse(
             id=str(tier.id),
@@ -5159,69 +5850,114 @@ class ListingService:
             amount_display=f"${tier.amount_usd / 100.0:.2f}",
             perks=tier.perks,
             is_highlighted=tier.is_highlighted,
-            spots_remaining=tier.spots_remaining,
+            purchasers_remaining=tier.spots_remaining,
             is_available=tier.is_available,
         )
     
-    def contribution_to_response(self, contribution: SupportContribution) -> dict:
-        """Convert SupportContribution model to response schema."""
+    def transaction_to_response(self, transaction: Transaction) -> ContributionResponse:
+        """Convert Transaction model to response schema."""
         from app.schemas.listing import ContributionResponse
         from app.services.monero_service import monero_service
         
         tier_name = "N/A"
-        if contribution.tier:
-            tier_name = contribution.tier.name
+        if transaction.tier:
+            tier_name = transaction.tier.name
         
         listing_title = "N/A"
-        if contribution.listing:
-            listing_title = contribution.listing.title
+        if transaction.listing:
+            listing_title = transaction.listing.title
+        
+        vendor_shop_name = "Unknown Vendor"
+        if transaction.listing and transaction.listing.vendor and transaction.listing.vendor.vendor_profile:
+            vendor_shop_name = transaction.listing.vendor.vendor_profile.shop_name
         
         return ContributionResponse(
-            contribution_id=str(contribution.id),
+            transaction_id=str(transaction.id),
             listing_title=listing_title,
+            vendor_shop_name=vendor_shop_name,
             tier_name=tier_name,
-            amount_usd=f"{Decimal(contribution.amount_usd_cents) / 100:.2f}",
-            amount_xmr=f"{monero_service.atomic_to_xmr(contribution.amount_xmr_atomic):.8f}",
-            xmr_address=contribution.deposit.address if contribution.deposit else None,
-            payment_id=contribution.deposit.payment_id if contribution.deposit else None,
-            qr_code_base64=contribution.deposit.qr_code_base64 if contribution.deposit else None,
-            expires_at=contribution.deposit.expires_at.isoformat() if contribution.deposit else None,
-            exchange_rate=contribution.exchange_rate_used,
+            amount_usd=f"{Decimal(transaction.amount_usd_cents) / 100:.2f}",
+            amount_xmr=f"{monero_service.atomic_to_xmr(transaction.amount_xmr_atomic):.8f}",
+            xmr_address=transaction.deposit.address if transaction.deposit else None,
+            payment_id=transaction.deposit.payment_id if transaction.deposit else None,
+            qr_code_base64=transaction.deposit.qr_code_base64 if transaction.deposit else None,
+            expires_at=transaction.deposit.expires_at.isoformat() if transaction.deposit else None,
+            exchange_rate=transaction.exchange_rate_used,
+            status=transaction.status.value,
         )
     
-    def supporter_to_response(self, supporter: SupporterWall) -> dict:
-        """Convert SupporterWall model to response schema."""
-        from app.schemas.listing import SupporterResponse
+    def review_to_response(self, review: Review) -> ReviewResponse:
+        """Convert Review model to response schema."""
+        from app.schemas.listing import ReviewResponse
         
-        amount_display = None
-        if supporter.contribution and supporter.contribution.amount_usd_cents:
-             amount_display = f"${supporter.contribution.amount_usd_cents / 100.0:.2f}"
+        reviewer_alias = "Anonymous"
+        if not review.is_anonymous and review.reviewer:
+            reviewer_alias = review.reviewer.username
+            if review.reviewer_alias: # Use alias if provided by reviewer
+                reviewer_alias = review.reviewer_alias
         
-        return SupporterResponse(
-            display_name=supporter.display_name,
-            tier_name=supporter.tier_name,
-            amount_display=amount_display,
-            public_message=supporter.public_message,
-            is_featured=supporter.is_featured,
-            created_at=supporter.created_at.isoformat(),
+        return ReviewResponse(
+            id=str(review.id),
+            listing_id=str(review.listing_id),
+            transaction_id=str(review.transaction_id),
+            reviewer_alias=reviewer_alias,
+            rating=review.rating,
+            comment=review.comment,
+            is_anonymous=review.is_anonymous,
+            created_at=review.created_at.isoformat(),
         )
     
-    def update_to_response(self, update: ListingUpdate) -> dict:
+    def update_to_response(self, update: ListingUpdate) -> ListingUpdateResponse:
         """Convert ListingUpdate model to response schema."""
-        from app.schemas.listing import ListingUpdateResponse # Assuming this schema exists
+        from app.schemas.listing import ListingUpdateResponse
         
-        # Placeholder: In a real app, ListingUpdateResponse schema would be defined.
-        # For now, returning a dict representation.
-        return {
-            "id": str(update.id),
-            "listing_id": str(update.listing_id),
-            "title": update.title,
-            "content": update.content,
-            "minimum_tier_amount": update.minimum_tier_amount,
-            "media_ids": update.media_ids,
-            "created_at": update.created_at.isoformat(),
-        }
+        return ListingUpdateResponse(
+            id=str(update.id),
+            listing_id=str(update.listing_id),
+            title=update.title,
+            content=update.content,
+            minimum_tier_amount=update.minimum_tier_amount,
+            media_ids=update.media_ids,
+            created_at=update.created_at.isoformat(),
+        )
 
+    # --- Helper methods for transaction confirmation ---
+    async def confirm_transaction(
+        self,
+        deposit_id: UUID,
+        tx_hash: str,
+        confirmed_at: datetime,
+        received_amount_atomic: int,
+    ) -> None:
+        """Confirms a transaction related to a deposit."""
+        # Find the transaction associated with the deposit
+        stmt = select(Transaction).where(Transaction.deposit_id == deposit_id)
+        result = await self.db.execute(stmt)
+        transaction = result.scalar_one_or_none()
+        
+        if not transaction:
+            # Log this potential issue - deposit confirmed but no transaction found
+            print(f"Warning: Deposit {deposit_id} confirmed, but no associated transaction found.")
+            return
+        
+        # Update transaction status and details
+        transaction.status = ContributionStatus.CONFIRMED
+        transaction.confirmed_at = confirmed_at
+        transaction.tx_hash = tx_hash
+        transaction.received_amount_atomic = received_amount_atomic # Store actual received amount
+        
+        # Update listing totals and tier purchaser count
+        listing = await self.get_listing_by_id(str(transaction.listing_id))
+        if listing:
+            listing.total_raised_atomic += received_amount_atomic
+            listing.supporter_count += 1 # Increment purchaser count
+            
+            if transaction.tier_id:
+                tier = await self.get_vendor_tier_by_id(str(transaction.tier_id))
+                if tier:
+                    tier.current_purchasers += 1
+        
+        await self.db.flush()
 
 # ============================================================================
 # FILE: app/services/subscription_service.py
@@ -5251,7 +5987,7 @@ class SubscriptionError(Exception):
 
 
 class SubscriptionService:
-    """Service for managing journalist subscriptions."""
+    """Service for managing vendor subscriptions."""
     
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -5269,7 +6005,7 @@ class SubscriptionService:
         
         # Check if user already has an active subscription for this tier
         existing_sub = await self.get_active_subscription_for_user(user_id)
-        if existing_sub and existing_sub.tier == tier:
+        if existing_sub and existing_sub.tier == SubscriptionTier(tier):
              # If renewing, update expiration and status
             if existing_sub.status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRING]:
                 # Extend subscription duration
@@ -5278,7 +6014,7 @@ class SubscriptionService:
                 existing_sub.price_xmr_atomic = price_xmr_atomic
                 existing_sub.payment_method = payment_method
                 existing_sub.payment_reference = payment_reference
-                existing_sub.status = SubscriptionStatus.ACTIVE
+                existing_sub.status = SubscriptionStatus.ACTIVE # Ensure active status
                 await self.db.flush()
                 return existing_sub
             else:
@@ -5306,7 +6042,7 @@ class SubscriptionService:
         return subscription
     
     async def get_active_subscription_for_user(self, user_id: UUID) -> Optional[Subscription]:
-        """Get the currently active subscription for a user."""
+        """Get the currently active subscription for a vendor."""
         stmt = select(Subscription).where(
             Subscription.user_id == user_id,
             Subscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRING]),
@@ -5371,19 +6107,19 @@ class SubscriptionService:
 # FILE: app/services/admin_service.py
 # ============================================================================
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update, desc, asc
+from sqlalchemy import select, func, update, desc, asc, join, outerjoin, aliased
 from sqlalchemy.orm import joinedload, selectinload
 from typing import List, Tuple, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime, timezone
 
-from app.models.user import User, UserRole, VerificationStatus, JournalistProfile
-from app.models.lead import Lead, LeadStatus
-from app.models.listing import SupportListing, ListingStatus
+from app.models.user import User, UserRole, VerificationStatus, VendorProfile, BuyerProfile # Added Vendor/Buyer profiles
+from app.models.lead import Lead, LeadStatus # Renamed Lead to Opportunity
+from app.models.listing import VendorListing, ListingStatus # Renamed SupportListing to VendorListing
 from app.services.auth_service import AuthenticationError # For consistent error handling
 from app.schemas.admin import (
-    AdminLeadResponse, AdminJournalistResponse, AdminListingResponse,
-    UserManagementResponse, UserDetailResponse
+    AdminLeadResponse, AdminVendorResponse, AdminListingResponse, # Renamed responses
+    UserManagementResponse, UserDetailResponse, AdminReviewResponse
 )
 
 
@@ -5402,17 +6138,17 @@ class AdminService:
     def __init__(self, db: AsyncSession):
         self.db = db
     
-    async def get_leads_by_status(
+    async def get_opportunities_by_status( # Updated method name
         self,
-        status: LeadStatus,
+        status: LeadStatus, # Still using LeadStatus enum for now
         page: int,
         page_size: int,
     ) -> Tuple[List[Lead], int]:
-        """Get leads based on their status."""
-        stmt = select(Lead).where(Lead.status == status)
+        """Get opportunities based on their status."""
+        stmt = select(Lead).where(Lead.status == status) # Using Lead model for opportunities
         
-        # Join with User to get source username
-        stmt = stmt.options(joinedload(Lead.source)) # Load source user object
+        # Join with User to get buyer username
+        stmt = stmt.options(joinedload(Lead.buyer)) # Load buyer user object
         
         stmt = stmt.order_by(desc(Lead.submitted_at))
         
@@ -5423,35 +6159,35 @@ class AdminService:
         result = await self.db.execute(
             stmt.limit(page_size).offset((page - 1) * page_size)
         )
-        leads = result.scalars().all()
+        opportunities = result.scalars().all()
         
-        return leads, total
+        return opportunities, total
     
-    async def review_lead(
+    async def review_opportunity( # Updated method name
         self,
-        lead_id: str,
+        opportunity_id: str,
         new_status: LeadStatus,
         admin_user_id: UUID,
         review_notes: Optional[str] = None,
-    ) -> Lead:
-        """Approve or reject a lead."""
-        stmt = select(Lead).where(Lead.id == lead_id)
+    ) -> Lead: # Return type is Lead (Opportunity)
+        """Approve or reject an opportunity."""
+        stmt = select(Lead).where(Lead.id == opportunity_id)
         result = await self.db.execute(stmt)
-        lead = result.scalar_one_or_none()
+        opportunity = result.scalar_one_or_none()
         
-        if not lead:
-            raise AdminError("Lead not found", status_code=404)
+        if not opportunity:
+            raise AdminError("Opportunity not found", status_code=404)
         
-        if lead.status not in [LeadStatus.SUBMITTED, LeadStatus.UNDER_REVIEW]:
-            raise AdminError("Lead is not in a reviewable state", status_code=400)
+        if opportunity.status not in [LeadStatus.SUBMITTED, LeadStatus.UNDER_REVIEW]: # Check relevant statuses
+            raise AdminError("Opportunity is not in a reviewable state", status_code=400)
         
-        lead.status = new_status
-        lead.reviewed_by = admin_user_id
-        lead.reviewed_at = datetime.now(timezone.utc)
-        lead.review_notes = review_notes
+        opportunity.status = new_status
+        opportunity.reviewed_by = admin_user_id
+        opportunity.reviewed_at = datetime.now(timezone.utc)
+        opportunity.review_notes = review_notes
         
         await self.db.flush()
-        return lead
+        return opportunity
     
     async def get_users_by_role_and_verification(
         self,
@@ -5463,14 +6199,18 @@ class AdminService:
         """Get users filtered by role and verification status."""
         stmt = select(User)
         
-        if role == UserRole.JOURNALIST:
-            stmt = stmt.options(joinedload(User.journalist_profile)) # Load profile for verification status
-            stmt = stmt.where(User.role == UserRole.JOURNALIST)
+        if role == UserRole.VENDOR:
+            stmt = stmt.options(joinedload(User.vendor_profile)) # Load vendor profile for verification status
+            stmt = stmt.where(User.role == UserRole.VENDOR)
             if verification_status:
-                stmt = stmt.where(User.journalist_profile.has(JournalistProfile.verification_status == verification_status))
+                stmt = stmt.where(User.vendor_profile.has(VendorProfile.verification_status == verification_status))
+        elif role == UserRole.BUYER:
+             # Buyers may have profiles but not verification status in the same way
+             # If filtering is needed, adjust this logic
+             stmt = stmt.where(User.role == UserRole.BUYER)
         else:
-            # Handle other roles if needed, currently only journalist verification is implemented
-            raise NotImplementedError("User filtering by role other than journalist not implemented")
+            # Handle other roles if needed
+             pass
         
         stmt = stmt.order_by(desc(User.created_at))
         
@@ -5492,7 +6232,7 @@ class AdminService:
         admin_user_id: UUID,
         review_notes: Optional[str] = None,
     ) -> User:
-        """Verify or reject a user's verification status (e.g., journalist)."""
+        """Verify or reject a user's verification status (e.g., vendor)."""
         stmt = select(User).where(User.id == user_id)
         result = await self.db.execute(stmt)
         user = result.scalar_one_or_none()
@@ -5500,16 +6240,17 @@ class AdminService:
         if not user:
             raise AdminError("User not found", status_code=404)
         
-        if user.role != UserRole.JOURNALIST:
-            raise AdminError("User is not a journalist", status_code=400)
-        
-        if not hasattr(user, 'journalist_profile') or not user.journalist_profile:
-             raise AdminError("Journalist profile not found", status_code=404)
-        
-        user.journalist_profile.verification_status = new_status
-        user.journalist_profile.verified_at = datetime.now(timezone.utc)
-        user.journalist_profile.verified_by = admin_user_id
-        user.journalist_profile.verification_notes = review_notes
+        if user.role == UserRole.VENDOR:
+            if not hasattr(user, 'vendor_profile') or not user.vendor_profile:
+                raise AdminError("Vendor profile not found", status_code=404)
+            
+            user.vendor_profile.verification_status = new_status
+            user.vendor_profile.verified_at = datetime.now(timezone.utc)
+            user.vendor_profile.verified_by = admin_user_id
+            user.vendor_profile.verification_notes = review_notes
+        else:
+            # Handle other roles if necessary
+            raise AdminError("User role does not support verification status updates", status_code=400)
         
         await self.db.flush()
         return user
@@ -5519,14 +6260,14 @@ class AdminService:
         status: ListingStatus,
         page: int,
         page_size: int,
-    ) -> Tuple[List[SupportListing], int]:
-        """Get listings based on their status."""
-        stmt = select(SupportListing).where(SupportListing.status == status)
+    ) -> Tuple[List[VendorListing], int]:
+        """Get vendor listings based on their status."""
+        stmt = select(VendorListing).where(VendorListing.status == status)
         
-        # Join with User to get source username
-        stmt = stmt.options(joinedload(SupportListing.source)) # Load source user object
+        # Join with User to get vendor username
+        stmt = stmt.options(joinedload(VendorListing.vendor)) # Load vendor user object
         
-        stmt = stmt.order_by(desc(SupportListing.submitted_at))
+        stmt = stmt.order_by(desc(VendorListing.submitted_at))
         
         total_stmt = stmt.with_only_columns(func.count()).order_by(None)
         total_result = await self.db.execute(total_stmt)
@@ -5544,9 +6285,9 @@ class AdminService:
         listing_id: str,
         new_status: ListingStatus,
         admin_user_id: UUID,
-    ) -> SupportListing:
-        """Approve or reject a listing."""
-        stmt = select(SupportListing).where(SupportListing.id == listing_id)
+    ) -> VendorListing:
+        """Approve or reject a vendor listing."""
+        stmt = select(VendorListing).where(VendorListing.id == listing_id)
         result = await self.db.execute(stmt)
         listing = result.scalar_one_or_none()
         
@@ -5581,15 +6322,15 @@ class AdminService:
         
         # Eager load profiles for verification status and other details
         stmt = stmt.options(
-            selectinload(User.journalist_profile),
-            selectinload(User.source_profile),
+            selectinload(User.vendor_profile),
+            selectinload(User.buyer_profile),
         )
         
         if role:
             stmt = stmt.where(User.role == role)
         
-        if verification_status and role == UserRole.JOURNALIST:
-            stmt = stmt.where(User.journalist_profile.has(JournalistProfile.verification_status == verification_status))
+        if verification_status and role == UserRole.VENDOR:
+            stmt = stmt.where(User.vendor_profile.has(VendorProfile.verification_status == verification_status))
         
         if search_query:
             search_query_lower = search_query.lower()
@@ -5615,8 +6356,8 @@ class AdminService:
         """Get a user by their ID."""
         stmt = select(User).where(User.id == user_id)
         stmt = stmt.options(
-            selectinload(User.journalist_profile),
-            selectinload(User.source_profile),
+            selectinload(User.vendor_profile),
+            selectinload(User.buyer_profile),
         )
         result = await self.db.execute(stmt)
         user = result.scalar_one_or_none()
@@ -5640,76 +6381,74 @@ class AdminService:
     
     # --- Model conversion methods ---
     
-    def lead_to_admin_response(self, lead: Lead) -> Dict[str, Any]:
-        """Convert Lead model to admin response schema."""
-        from app.schemas.admin import AdminLeadResponse # Assuming schema exists
+    def opportunity_to_admin_response(self, opportunity: Lead) -> Dict[str, Any]: # Renamed response type
+        """Convert Lead (Opportunity) model to admin response schema."""
+        from app.schemas.admin import AdminLeadResponse
         
-        source_username = lead.source.username if hasattr(lead, 'source') and lead.source else "Unknown"
+        buyer_username = opportunity.buyer.username if hasattr(opportunity, 'buyer') and opportunity.buyer else "Unknown"
         
         return AdminLeadResponse(
-            id=str(lead.id),
-            title=lead.title,
-            source_username=source_username,
-            category=lead.category.value,
-            status=lead.status.value,
-            submitted_at=lead.submitted_at.isoformat() if lead.submitted_at else None,
-            review_notes=lead.review_notes,
-            reviewed_at=lead.reviewed_at.isoformat() if lead.reviewed_at else None,
-            reviewed_by_username=lead.reviewer.username if hasattr(lead, 'reviewer') and lead.reviewer else None,
+            id=str(opportunity.id),
+            title=opportunity.title,
+            buyer_username=buyer_username,
+            category=opportunity.category.value,
+            status=opportunity.status.value,
+            submitted_at=opportunity.submitted_at.isoformat() if opportunity.submitted_at else None,
+            review_notes=opportunity.review_notes,
+            reviewed_at=opportunity.reviewed_at.isoformat() if opportunity.reviewed_at else None,
+            reviewed_by_username=opportunity.reviewer.username if hasattr(opportunity, 'reviewer') and opportunity.reviewer else None,
         )
     
-    def journalist_to_admin_response(self, user: User) -> Dict[str, Any]:
-        """Convert User (Journalist) model to admin response schema."""
-        from app.schemas.admin import AdminJournalistResponse
+    def vendor_to_admin_response(self, user: User) -> Dict[str, Any]:
+        """Convert User (Vendor) model to admin response schema."""
+        from app.schemas.admin import AdminVendorResponse
         
-        profile = user.journalist_profile
+        profile = user.vendor_profile
         if not profile:
-            raise ValueError("User is not a journalist or profile missing") # Should not happen if called correctly
+            raise ValueError("User is not a vendor or profile missing") # Should not happen if called correctly
         
-        return AdminJournalistResponse(
+        return AdminVendorResponse(
             user_id=str(user.id),
             username=user.username,
-            email=user.username, # Using username as placeholder for email in this context
-            organization=profile.organization,
-            organization_verified=profile.organization_verified,
+            shop_name=profile.shop_name,
             verification_status=profile.verification_status.value,
             applied_at=user.created_at.isoformat(),
             verified_at=profile.verified_at.isoformat() if profile.verified_at else None,
-            verified_by_username=user.verified_by_username if hasattr(user, 'verified_by_username') and user.verified_by_username else None, # Needs explicit join/load
+            verified_by_username=user.verified_by_user.username if hasattr(user, 'verified_by_user') and user.verified_by_user else None, # Linked via verified_by
             review_notes=profile.verification_notes,
         )
     
-    def listing_to_admin_response(self, listing: SupportListing) -> Dict[str, Any]:
-        """Convert SupportListing model to admin response schema."""
+    def listing_to_admin_response(self, listing: VendorListing) -> Dict[str, Any]:
+        """Convert VendorListing model to admin response schema."""
         from app.schemas.admin import AdminListingResponse
         
-        source_username = listing.source.username if hasattr(listing, 'source') and listing.source else "Unknown"
+        vendor_username = listing.vendor.username if hasattr(listing, 'vendor') and listing.vendor else "Unknown"
         
         return AdminListingResponse(
             id=str(listing.id),
             title=listing.title,
-            source_username=source_username,
+            vendor_username=vendor_username,
             category=listing.category.value,
             status=listing.status.value,
             submitted_at=listing.created_at.isoformat(), # Assuming submitted_at = created_at for pending
             verified=listing.verified_by_admin,
             verified_at=listing.verified_at.isoformat() if listing.verified_at else None,
-            verified_by_username=listing.verifier.username if hasattr(listing, 'verifier') and listing.verifier else None, # Needs explicit join/load
+            verified_by_username=listing.verifier.username if hasattr(listing, 'verifier') and listing.verifier else None, # Linked via verified_by
         )
     
     def user_to_management_response(self, user: User) -> Dict[str, Any]:
         """Convert User model to management response schema."""
-        from app.schemas.admin import UserManagementResponse # Reusing name, need UserDetailResponse maybe
+        from app.schemas.admin import UserManagementResponse
         
         profile_details = {}
-        if user.journalist_profile:
+        if user.vendor_profile:
             profile_details = {
-                "organization": user.journalist_profile.organization,
-                "verification_status": user.journalist_profile.verification_status.value,
+                "shop_name": user.vendor_profile.shop_name,
+                "verification_status": user.vendor_profile.verification_status.value,
             }
-        elif user.source_profile:
+        elif user.buyer_profile:
             profile_details = {
-                "anonymous_alias": user.source_profile.anonymous_alias,
+                "anonymous_alias": user.buyer_profile.anonymous_alias,
             }
             
         return UserManagementResponse(
@@ -5726,21 +6465,25 @@ class AdminService:
         from app.schemas.admin import UserDetailResponse
         
         profile_details = {}
-        if user.journalist_profile:
+        if user.vendor_profile:
             profile_details = {
-                "organization": user.journalist_profile.organization,
-                "organization_verified": user.journalist_profile.organization_verified,
-                "beat": user.journalist_profile.beat,
-                "portfolio_url": user.journalist_profile.portfolio_url,
-                "verification_status": user.journalist_profile.verification_status.value,
-                "verified_at": user.journalist_profile.verified_at.isoformat() if user.journalist_profile.verified_at else None,
-                "verified_by_username": user.journalist_profile.verifier.username if hasattr(user.journalist_profile, 'verifier') and user.journalist_profile.verifier else None,
-                "review_notes": user.journalist_profile.verification_notes,
+                "shop_name": user.vendor_profile.shop_name,
+                "description": user.vendor_profile.description,
+                "categories": user.vendor_profile.categories,
+                "verification_status": user.vendor_profile.verification_status.value,
+                "organization_verified": user.vendor_profile.verified_at, # Assuming verified_at implies org verification? Or needs separate field.
+                "verified_at": user.vendor_profile.verified_at.isoformat() if user.vendor_profile.verified_at else None,
+                "verified_by_username": user.verified_by_user.username if hasattr(user, 'verified_by_user') and user.verified_by_user else None,
+                "review_notes": user.vendor_profile.verification_notes,
+                "subscription_tier": user.vendor_profile.subscription_tier,
+                "subscription_expires_at": user.vendor_profile.subscription_expires_at.isoformat() if user.vendor_profile.subscription_expires_at else None,
+                "total_sales": user.vendor_profile.total_sales,
+                "rating": user.vendor_profile.rating,
             }
-        elif user.source_profile:
+        elif user.buyer_profile:
             profile_details = {
-                "anonymous_alias": user.source_profile.anonymous_alias,
-                "trust_score": user.source_profile.trust_score,
+                "anonymous_alias": user.buyer_profile.anonymous_alias,
+                "trust_score": user.buyer_profile.trust_score,
             }
             
         return UserDetailResponse(
@@ -5798,14 +6541,15 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from celery import shared_task
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, or_
 
 from app.database import get_db, async_session_factory
 from app.models.payment import Deposit, DepositStatus, DepositPurpose, Subscription, SubscriptionStatus
-from app.models.listing import SupportListing, SupportContribution, ContributionStatus
+from app.models.listing import VendorListing, VendorTier, Transaction # Updated models
 from app.services.monero_service import MoneroService, monero_service
 from app.services.price_oracle import PriceOracleError, price_oracle
 from app.config import settings
+from app.services.listing_service import ListingService # For confirming transactions
 
 
 @shared_task(bind=True, max_retries=5, default_retry_delay=60) # Retry for transient errors
@@ -5842,6 +6586,7 @@ async def monitor_monero_deposits(self, *args, **kwargs):
             return {"status": "No transfers found, retrying later."}
         
         processed_deposits = set()
+        listing_service = ListingService(db) # Initialize ListingService for confirmations
         
         for deposit in deposits:
             # Check if this deposit has already been processed in this run to avoid duplicates
@@ -5858,903 +6603,4 @@ async def monitor_monero_deposits(self, *args, **kwargs):
                 # Check if the transfer has a matching payment ID
                 if transfer.get("payment_id") == payment_id:
                     # Check if the transfer amount matches the expected amount
-                    # Allow for slight variations due to fees or network fluctuations if needed,
-                    # but exact match is preferred for clarity.
-                    # For now, exact match:
-                    if transfer.get("amount") == expected_amount:
-                        matched_transfer = transfer
-                        break # Found a match
-            
-            if matched_transfer:
-                # Found a matching transfer
-                tx_hash = matched_transfer.get("txid")
-                confirmations = matched_transfer.get("confirmations", 0)
-                received_amount = matched_transfer.get("amount")
-                
-                # Update deposit status and details
-                deposit.tx_hash = tx_hash
-                deposit.confirmations = confirmations
-                deposit.received_amount_atomic = received_amount
-                
-                # Update status based on confirmations
-                if confirmations >= settings.MONERO_CONFIRMATIONS_REQUIRED:
-                    deposit.status = DepositStatus.CONFIRMED
-                    deposit.confirmed_at = datetime.now(timezone.utc)
-                    
-                    # Process the deposit purpose
-                    await process_deposit_purpose(
-                        db=db,
-                        deposit=deposit,
-                        received_amount_atomic=received_amount,
-                        current_xmr_usd_price=current_xmr_usd_price,
-                    )
-                else:
-                    deposit.status = DepositStatus.CONFIRMING
-                
-                processed_deposits.add(deposit.id)
-                await db.flush()
-        
-        # Handle expired deposits
-        expired_stmt = update(Deposit).where(
-            Deposit.status.in_([DepositStatus.PENDING, DepositStatus.CONFIRMING]),
-            Deposit.expires_at <= datetime.now(timezone.utc),
-        ).values(status=DepositStatus.EXPIRED)
-        await db.execute(expired_stmt)
-        await db.flush()
-        
-        await db.commit() # Commit all changes
-        return {"status": "Monero deposits monitored"}
-        
-    except Exception as e:
-        await db.rollback() # Rollback on error
-        # Log the error and potentially re-raise for Celery to handle retries
-        print(f"Error monitoring Monero deposits: {e}") # Use proper logging in production
-        raise e # Re-raise to trigger Celery retry mechanism
-
-
-async def process_deposit_purpose(db: AsyncSession, deposit: Deposit, received_amount_atomic: int, current_xmr_usd_price: Optional[Decimal]):
-    """Process actions based on the deposit purpose."""
-    
-    if deposit.purpose == DepositPurpose.SUBSCRIPTION:
-        # Renew or activate journalist subscription
-        from app.services.subscription_service import SubscriptionService
-        sub_service = SubscriptionService(db)
-        
-        # We need the tier and user ID from the reference_id
-        try:
-            parts = deposit.reference_id.split(':')
-            if len(parts) == 3 and parts[0] == 'sub':
-                user_id = UUID(parts[1])
-                tier = parts[2]
-                
-                # Fetch subscription to update or create
-                existing_sub_stmt = select(Subscription).where(
-                    Subscription.user_id == user_id,
-                    Subscription.tier == SubscriptionTier(tier),
-                    Subscription.payment_reference == str(deposit.id),
-                )
-                existing_sub_result = await db.execute(existing_sub_stmt)
-                existing_sub = existing_sub_result.scalar_one_or_none()
-                
-                if existing_sub:
-                    # Existing subscription, renew it
-                    # Recalculate price if needed based on current rate, or use stored rate
-                    # For simplicity, let's assume price_usd_cents is fixed per tier
-                    # We can update price_xmr_atomic if the rate changed significantly
-                    # For now, just update status and extend expiry
-                    
-                    existing_sub.status = SubscriptionStatus.ACTIVE
-                    existing_sub.expires_at = datetime.now(timezone.utc) + timedelta(days=30) # Extend by 30 days
-                    existing_sub.price_xmr_atomic = received_amount_atomic # Update with amount paid
-                    existing_sub.payment_method = "monero" # Ensure it's set
-                    
-                    await db.flush()
-                else:
-                    # This should ideally not happen if the deposit was created correctly
-                    # but handle as a new subscription if reference is valid but no sub found
-                    # This assumes price_usd_cents is available in settings
-                    price_usd_cents = 0
-                    if tier == SubscriptionTier.FREELANCER.value: price_usd_cents = settings.PRICE_FREELANCER_MONTHLY
-                    elif tier == SubscriptionTier.OUTLET.value: price_usd_cents = settings.PRICE_OUTLET_MONTHLY
-                    elif tier == SubscriptionTier.ENTERPRISE.value: price_usd_cents = settings.PRICE_ENTERPRISE_MONTHLY
-                    
-                    if price_usd_cents > 0 and current_xmr_usd_price:
-                        price_xmr_atomic = monero_service.xmr_to_atomic(Decimal(price_usd_cents) / current_xmr_usd_price)
-                        
-                        await sub_service.create_subscription(
-                            user_id=user_id,
-                            tier=tier,
-                            price_usd_cents=price_usd_cents,
-                            price_xmr_atomic=price_xmr_atomic,
-                            payment_method="monero",
-                            payment_reference=str(deposit.id),
-                        )
-                    else:
-                         # Could not determine price, log error
-                         print(f"Could not determine subscription price for user {user_id}, tier {tier}")
-                        
-            else:
-                print(f"Invalid reference_id format for subscription deposit: {deposit.reference_id}")
-        
-    elif deposit.purpose == DepositPurpose.SUPPORT_CONTRIBUTION:
-        # Mark a support contribution as confirmed
-        from app.services.listing_service import ListingService
-        list_service = ListingService(db)
-        
-        try:
-            # Extract listing_id and tier_id from reference_id
-            parts = deposit.reference_id.split(':')
-            if len(parts) == 2 and parts[0] == 'cont':
-                listing_id = UUID(parts[1])
-                tier_id = UUID(parts[2]) # Assuming tier ID is also part of reference
-                
-                # Update contribution status
-                await list_service.confirm_contribution(
-                    deposit_id=deposit.id,
-                    tx_hash=deposit.tx_hash,
-                    confirmed_at=deposit.confirmed_at,
-                    received_amount_atomic=received_amount_atomic,
-                    listing_id=listing_id,
-                    tier_id=tier_id,
-                )
-            else:
-                print(f"Invalid reference_id format for contribution deposit: {deposit.reference_id}")
-        except Exception as e:
-            print(f"Error processing contribution deposit {deposit.id}: {e}")
-            # Log and potentially fail the contribution or mark for manual review
-            
-    # Add other deposit purposes here (e.g., VENDOR_UPGRADE, TOP_UP)
-
-
-# ============================================================================
-# FILE: app/workers/cleanup.py
-# ============================================================================
-import asyncio
-from datetime import datetime, timedelta, timezone
-from celery import shared_task
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, update
-
-from app.database import get_db, async_session_factory
-from app.models.user import AuthChallenge, Session
-from app.models.payment import Deposit
-from app.config import settings
-
-
-@shared_task(bind=True)
-async def cleanup_expired_auth_challenges(self, *args, **kwargs):
-    """
-    Celery task to remove expired authentication challenges.
-    """
-    async_session = async_session_factory()
-    db: AsyncSession = async_session.get_synchronizer().async_session
-    
-    try:
-        now = datetime.now(timezone.utc)
-        
-        # Delete expired challenges
-        stmt = delete(AuthChallenge).where(AuthChallenge.expires_at <= now)
-        await db.execute(stmt)
-        
-        await db.commit()
-        return {"status": "Expired auth challenges cleaned up"}
-    except Exception as e:
-        await db.rollback()
-        print(f"Error cleaning up auth challenges: {e}") # Use proper logging
-        raise e
-
-
-@shared_task(bind=True)
-async def cleanup_expired_sessions(self, *args, **kwargs):
-    """
-    Celery task to remove expired user sessions.
-    """
-    async_session = async_session_factory()
-    db: AsyncSession = async_session.get_synchronizer().async_session
-    
-    try:
-        now = datetime.now(timezone.utc)
-        
-        # Delete expired sessions
-        stmt = delete(Session).where(Session.expires_at <= now)
-        await db.execute(stmt)
-        
-        await db.commit()
-        return {"status": "Expired sessions cleaned up"}
-    except Exception as e:
-        await db.rollback()
-        print(f"Error cleaning up sessions: {e}") # Use proper logging
-        raise e
-
-
-@shared_task(bind=True)
-async def cleanup_expired_deposits(self, *args, **kwargs):
-    """
-    Celery task to mark expired Monero deposit addresses.
-    """
-    async_session = async_session_factory()
-    db: AsyncSession = async_session.get_synchronizer().async_session
-    
-    try:
-        now = datetime.now(timezone.utc)
-        
-        # Update expired deposits to EXPIRED status
-        stmt = (
-            update(Deposit)
-            .where(
-                Deposit.status.in_([DepositStatus.PENDING, DepositStatus.CONFIRMING]),
-                Deposit.expires_at <= now,
-            )
-            .values(status=DepositStatus.EXPIRED)
-        )
-        await db.execute(stmt)
-        
-        await db.commit()
-        return {"status": "Expired deposits marked as EXPIRED"}
-    except Exception as e:
-        await db.rollback()
-        print(f"Error cleaning up expired deposits: {e}") # Use proper logging
-        raise e
-
-# ============================================================================
-# FILE: app/services/pgp_service.py
-# ============================================================================
-import gnupg
-import secrets
-import hashlib
-import time
-from dataclasses import dataclass
-from enum import Enum
-from typing import Optional, Tuple
-
-from app.config import settings
-
-
-class PGPKeyAlgorithm(Enum):
-    ED25519 = "ed25519"
-    CURVE25519 = "curve25519"
-    RSA4096 = "rsa4096"
-    RSA2048 = "rsa2048"
-    DSA = "dsa"
-
-
-@dataclass
-class PGPKeyInfo:
-    """Validated PGP key information."""
-    
-    fingerprint: str
-    algorithm: PGPKeyAlgorithm
-    key_length: int
-    user_ids: list
-    expires_at: Optional[int]
-    is_revoked: bool
-    is_valid: bool
-    rejection_reason: Optional[str] = None
-
-
-class PGPService:
-    """PGP cryptographic operations service."""
-    
-    def __init__(self):
-        self.gpg = gnupg.GPG(gnupghome=settings.GNUPG_HOME)
-        self.gpg.encoding = "utf-8"
-    
-    def validate_public_key(self, armored_key: str) -> PGPKeyInfo:
-        """
-        Validate a PGP public key for registration.
-        Accepts: Ed25519, Curve25519, RSA 4096+
-        Rejects: DSA, RSA < 4096, expired, revoked
-        """
-        # Import key temporarily
-        import_result = self.gpg.import_keys(armored_key)
-        
-        if not import_result.fingerprints:
-            return PGPKeyInfo(
-                fingerprint="",
-                algorithm=PGPKeyAlgorithm.RSA2048,
-                key_length=0,
-                user_ids=[],
-                expires_at=None,
-                is_revoked=False,
-                is_valid=False,
-                rejection_reason="Invalid PGP key format - could not parse",
-            )
-        
-        fingerprint = import_result.fingerprints[0]
-        keys = self.gpg.list_keys(keys=[fingerprint])
-        
-        if not keys:
-            self._cleanup_key(fingerprint)
-            return PGPKeyInfo(
-                fingerprint=fingerprint,
-                algorithm=PGPKeyAlgorithm.RSA2048,
-                key_length=0,
-                user_ids=[],
-                expires_at=None,
-                is_revoked=False,
-                is_valid=False,
-                rejection_reason="Could not retrieve key details after import",
-            )
-        
-        key = keys[0]
-        
-        # Determine algorithm
-        algo = key.get("algo", "").lower()
-        key_length = int(key.get("length", 0))
-        
-        if "ed25519" in algo or key.get("algo") == "22":
-            algorithm = PGPKeyAlgorithm.ED25519
-        elif "cv25519" in algo or "curve25519" in algo:
-            algorithm = PGPKeyAlgorithm.CURVE25519
-        elif "rsa" in algo or key.get("algo") in ["1", "2", "3"]:
-            algorithm = PGPKeyAlgorithm.RSA4096 if key_length >= 4096 else PGPKeyAlgorithm.RSA2048
-        elif "dsa" in algo or key.get("algo") == "17":
-            algorithm = PGPKeyAlgorithm.DSA
-        else:
-            algorithm = PGPKeyAlgorithm.RSA2048
-        
-        # Check expiration
-        expires_at = None
-        if key.get("expires"):
-            expires_at = int(key["expires"])
-        
-        # Check revocation
-        is_revoked = key.get("trust", "") == "r"
-        
-        # Validation rules
-        rejection_reason = None
-        is_valid = True
-        
-        if algorithm == PGPKeyAlgorithm.DSA:
-            is_valid = False
-            rejection_reason = "DSA keys are not accepted. Please use Ed25519 or RSA-4096+"
-        elif algorithm == PGPKeyAlgorithm.RSA2048:
-            is_valid = False
-            rejection_reason = f"RSA keys must be at least 4096 bits. Your key is {key_length} bits."
-        elif is_revoked:
-            is_valid = False
-            rejection_reason = "This key has been revoked"
-        elif expires_at and expires_at < time.time() + (30 * 24 * 60 * 60):
-            is_valid = False
-            rejection_reason = "Key expires within 30 days. Please use a longer-lived key."
-        
-        # Clean up if invalid
-        if not is_valid:
-            self._cleanup_key(fingerprint)
-        
-        return PGPKeyInfo(
-            fingerprint=fingerprint,
-            algorithm=algorithm,
-            key_length=key_length,
-            user_ids=key.get("uids", []),
-            expires_at=expires_at,
-            is_revoked=is_revoked,
-            is_valid=is_valid,
-            rejection_reason=rejection_reason,
-        )
-    
-    def generate_challenge(self, username: str) -> Tuple[str, str]:
-        """
-        Generate an ARCHITECT challenge for authentication.
-        Returns: (challenge_plaintext, challenge_hash)
-        """
-        token = secrets.token_urlsafe(48)  # 384 bits entropy
-        timestamp = int(time.time())
-        server_fp_short = settings.PLATFORM_PGP_FINGERPRINT[:8].upper()
-        
-        challenge = f"ARCHITECT_{token}_{timestamp}_{server_fp_short}"
-        challenge_hash = hashlib.sha256(challenge.encode()).hexdigest()
-        
-        return challenge, challenge_hash
-    
-    def encrypt_challenge(self, challenge: str, recipient_fingerprint: str) -> str:
-        """Encrypt a challenge to the user's public key."""
-        encrypted = self.gpg.encrypt(
-            challenge,
-            recipients=[recipient_fingerprint],
-            armor=True,
-            always_trust=True,
-        )
-        
-        if not encrypted.ok:
-            raise ValueError(f"PGP encryption failed: {encrypted.status}")
-        
-        return str(encrypted)
-    
-    def sign_message(self, message: str) -> str:
-        """Sign a message with the platform's private key."""
-        signed = self.gpg.sign(
-            message,
-            keyid=settings.PLATFORM_PGP_FINGERPRINT,
-            passphrase=settings.PLATFORM_PGP_PASSPHRASE,
-            detach=True,
-            armor=True,
-        )
-        
-        if not signed:
-            raise ValueError("PGP signing failed")
-        
-        return str(signed)
-    
-    def encrypt_message(
-        self,
-        plaintext: str,
-        recipient_fingerprint: str,
-        sign: bool = True,
-    ) -> str:
-        """
-        Encrypt a message for secure communication.
-        Optionally sign with platform key.
-        """
-        kwargs = {
-            "recipients": [recipient_fingerprint],
-            "armor": True,
-            "always_trust": True,
-        }
-        
-        if sign:
-            kwargs["sign"] = settings.PLATFORM_PGP_FINGERPRINT
-            kwargs["passphrase"] = settings.PLATFORM_PGP_PASSPHRASE
-        
-        encrypted = self.gpg.encrypt(plaintext, **kwargs)
-        
-        if not encrypted.ok:
-            raise ValueError(f"PGP encryption failed: {encrypted.status}")
-        
-        return str(encrypted)
-    
-    def verify_challenge_response(
-        self,
-        response: str,
-        expected_hash: str,
-        max_age_seconds: int = 300,
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Verify an ARCHITECT challenge response.
-        Returns: (is_valid, error_message)
-        """
-        # Check format
-        parts = response.split("_")
-        if len(parts) != 4:
-            return False, "Invalid challenge format: expected 4 parts"
-        
-        if parts[0] != "ARCHITECT":
-            return False, "Invalid challenge format: must start with ARCHITECT"
-        
-        # Verify hash (constant-time comparison)
-        response_hash = hashlib.sha256(response.encode()).hexdigest()
-        if not secrets.compare_digest(response_hash, expected_hash):
-            return False, "Challenge response does not match"
-        
-        # Verify timestamp
-        try:
-            timestamp = int(parts[2])
-            age = time.time() - timestamp
-            
-            # Allow 60s clock skew in either direction
-            if age > max_age_seconds:
-                return False, "Challenge has expired"
-            if age < -60:
-                return False, "Challenge timestamp is in the future"
-        except ValueError:
-            return False, "Invalid timestamp in challenge"
-        
-        # Verify server fingerprint
-        expected_fp = settings.PLATFORM_PGP_FINGERPRINT[:8].upper()
-        if parts[3].upper() != expected_fp:
-            return False, "Invalid server fingerprint in challenge"
-        
-        return True, None
-    
-    def _cleanup_key(self, fingerprint: str) -> bool:
-        """Remove a key from the keyring."""
-        try:
-            self.gpg.delete_keys(fingerprint)
-            return True
-        except Exception:
-            return False
-
-
-# Singleton instance
-pgp_service = PGPService()
-
-
-# ============================================================================
-# FILE: app/services/auth_service.py
-# ============================================================================
-import secrets
-import hashlib
-import asyncio
-import random
-from datetime import datetime, timedelta, timezone
-from uuid import UUID
-from typing import Optional
-
-from sqlalchemy import select, delete
-from sqlalchemy.ext.asyncio import AsyncSession
-from redis.asyncio import Redis
-
-from app.config import settings
-from app.models.user import (
-    User, UserRole, JournalistProfile, SourceProfile,
-    AuthChallenge, Session
-)
-from app.services.pgp_service import pgp_service
-from app.schemas.auth import (
-    RegisterRequest, RegisterChallengeResponse,
-    ChallengeResponseRequest, AuthResponse,
-)
-
-
-class AuthenticationError(Exception):
-    """Authentication failure with HTTP status code."""
-    
-    def __init__(self, message: str, status_code: int = 401):
-        self.message = message
-        self.status_code = status_code
-        super().__init__(message)
-
-
-class AuthService:
-    """ARCHITECT protocol authentication service."""
-    
-    def __init__(self, db: AsyncSession, redis: Redis):
-        self.db = db
-        self.redis = redis
-    
-    async def initiate_registration(
-        self,
-        request: RegisterRequest,
-    ) -> RegisterChallengeResponse:
-        """
-        Registration Step 1: Validate key and issue encrypted challenge.
-        """
-        # Check rate limit
-        await self._check_rate_limit(f"register:{request.username}")
-        
-        # Check username availability
-        existing = await self.db.execute(
-            select(User).where(User.username == request.username)
-        )
-        if existing.scalar_one_or_none():
-            raise AuthenticationError("Username already taken", status_code=409)
-        
-        # Validate PGP key
-        key_info = pgp_service.validate_public_key(request.pgp_public_key)
-        
-        if not key_info.is_valid:
-            raise AuthenticationError(
-                key_info.rejection_reason or "Invalid PGP key",
-                status_code=422,
-            )
-        
-        # Check fingerprint uniqueness
-        existing_fp = await self.db.execute(
-            select(User).where(User.pgp_fingerprint == key_info.fingerprint)
-        )
-        if existing_fp.scalar_one_or_none():
-            raise AuthenticationError(
-                "This PGP key is already registered with another account",
-                status_code=409,
-            )
-        
-        # Generate challenge
-        challenge_plain, challenge_hash = pgp_service.generate_challenge(
-            request.username
-        )
-        
-        # Encrypt to user's key
-        encrypted_challenge = pgp_service.encrypt_challenge(
-            challenge_plain,
-            key_info.fingerprint,
-        )
-        
-        # Sign our response
-        signature = pgp_service.sign_message(encrypted_challenge)
-        
-        # Store challenge
-        auth_challenge = AuthChallenge(
-            username=request.username,
-            challenge_hash=challenge_hash,
-            expires_at=datetime.now(timezone.utc) + timedelta(
-                seconds=settings.CHALLENGE_EXPIRE_SECONDS
-            ),
-        )
-        self.db.add(auth_challenge)
-        await self.db.flush()
-        
-        # Store pending registration in Redis
-        await self.redis.setex(
-            f"pending_reg:{request.username}",
-            settings.CHALLENGE_EXPIRE_SECONDS,
-            f"{key_info.fingerprint}x00{request.pgp_public_key}x00{request.role}",
-        )
-        
-        return RegisterChallengeResponse(
-            encrypted_challenge=encrypted_challenge,
-            signature=signature,
-            server_fingerprint=settings.PLATFORM_PGP_FINGERPRINT,
-            expires_in_seconds=settings.CHALLENGE_EXPIRE_SECONDS,
-        )
-    
-    async def complete_registration(
-        self,
-        username: str,
-        challenge_response: str,
-    ) -> AuthResponse:
-        """
-        Registration Step 2: Verify response and create account.
-        """
-        username = username.lower()
-        
-        # Get pending challenge
-        result = await self.db.execute(
-            select(AuthChallenge)
-            .where(AuthChallenge.username == username)
-            .where(AuthChallenge.consumed == False)
-            .where(AuthChallenge.expires_at > datetime.now(timezone.utc))
-            .order_by(AuthChallenge.created_at.desc())
-        )
-        challenge = result.scalar_one_or_none()
-        
-        if not challenge:
-            raise AuthenticationError(
-                "No pending challenge found. Please restart registration.",
-                status_code=410,
-            )
-        
-        # Check attempts
-        if challenge.attempts >= settings.MAX_LOGIN_ATTEMPTS:
-            raise AuthenticationError(
-                "Too many failed attempts. Please restart registration.",
-                status_code=429,
-            )
-        
-        # Increment attempts
-        challenge.attempts += 1
-        await self.db.flush()
-        
-        # Verify response
-        is_valid, error = pgp_service.verify_challenge_response(
-            challenge_response,
-            challenge.challenge_hash,
-        )
-        
-        if not is_valid:
-            await self._artificial_delay()
-            raise AuthenticationError(error or "Invalid challenge response")
-        
-        # Mark challenge as consumed
-        challenge.consumed = True
-        
-        # Get pending registration data
-        pending_data = await self.redis.get(f"pending_reg:{username}")
-        if not pending_data:
-            raise AuthenticationError(
-                "Registration session expired. Please restart.",
-                status_code=410,
-            )
-        
-        fingerprint, pgp_key, role = pending_data.decode().split("x00", 2)
-        
-        # Create user
-        user = User(
-            username=username,
-            role=UserRole(role),
-            pgp_fingerprint=fingerprint,
-            pgp_public_key=pgp_key,
-        )
-        self.db.add(user)
-        await self.db.flush()
-        
-        # Create role-specific profile
-        if role == "journalist":
-            profile = JournalistProfile(id=user.id)
-            self.db.add(profile)
-        elif role == "source":
-            alias = await self._generate_anonymous_alias()
-            profile = SourceProfile(id=user.id, anonymous_alias=alias)
-            self.db.add(profile)
-        
-        # Clean up Redis
-        await self.redis.delete(f"pending_reg:{username}")
-        
-        # Create session
-        session_token = await self._create_session(user.id)
-        
-        return AuthResponse(
-            success=True,
-            session_token=session_token,
-            user_id=str(user.id),
-            username=user.username,
-            role=user.role.value,
-            expires_in_seconds=settings.SESSION_EXPIRE_MINUTES * 60,
-        )
-    
-    async def initiate_login(self, username: str) -> RegisterChallengeResponse:
-        """
-        Login Step 1: Issue challenge to existing user.
-        """
-        username = username.lower()
-        
-        # Check rate limit
-        await self._check_rate_limit(f"login:{username}")
-        
-        # Get user
-        result = await self.db.execute(
-            select(User).where(User.username == username)
-        )
-        user = result.scalar_one_or_none()
-        
-        if not user:
-            # Don't reveal if user exists
-            await self._artificial_delay()
-            raise AuthenticationError("Authentication failed")
-        
-        if not user.is_active:
-            raise AuthenticationError("Account suspended", status_code=403)
-        
-        # Generate challenge
-        challenge_plain, challenge_hash = pgp_service.generate_challenge(username)
-        
-        # Encrypt to user's key
-        encrypted_challenge = pgp_service.encrypt_challenge(
-            challenge_plain,
-            user.pgp_fingerprint,
-        )
-        
-        signature = pgp_service.sign_message(encrypted_challenge)
-        
-        # Store challenge
-        auth_challenge = AuthChallenge(
-            username=username,
-            challenge_hash=challenge_hash,
-            expires_at=datetime.now(timezone.utc) + timedelta(
-                seconds=settings.CHALLENGE_EXPIRE_SECONDS
-            ),
-        )
-        self.db.add(auth_challenge)
-        
-        return RegisterChallengeResponse(
-            encrypted_challenge=encrypted_challenge,
-            signature=signature,
-            server_fingerprint=settings.PLATFORM_PGP_FINGERPRINT,
-            expires_in_seconds=settings.CHALLENGE_EXPIRE_SECONDS,
-        )
-    
-    async def complete_login(
-        self,
-        username: str,
-        challenge_response: str,
-        circuit_hash: Optional[str] = None,
-    ) -> AuthResponse:
-        """
-        Login Step 2: Verify challenge and create session.
-        """
-        username = username.lower()
-        
-        # Get user
-        result = await self.db.execute(
-            select(User).where(User.username == username)
-        )
-        user = result.scalar_one_or_none()
-        
-        if not user:
-            await self._artificial_delay()
-            raise AuthenticationError("Authentication failed")
-        
-        # Get challenge
-        result = await self.db.execute(
-            select(AuthChallenge)
-            .where(AuthChallenge.username == username)
-            .where(AuthChallenge.consumed == False)
-            .where(AuthChallenge.expires_at > datetime.now(timezone.utc))
-            .order_by(AuthChallenge.created_at.desc())
-        )
-        challenge = result.scalar_one_or_none()
-        
-        if not challenge:
-            raise AuthenticationError("No pending challenge", status_code=410)
-        
-        if challenge.attempts >= settings.MAX_LOGIN_ATTEMPTS:
-            raise AuthenticationError("Too many attempts", status_code=429)
-        
-        challenge.attempts += 1
-        await self.db.flush()
-        
-        # Verify
-        is_valid, error = pgp_service.verify_challenge_response(
-            challenge_response,
-            challenge.challenge_hash,
-        )
-        
-        if not is_valid:
-            await self._artificial_delay()
-            raise AuthenticationError(error or "Invalid challenge response")
-        
-        challenge.consumed = True
-        
-        # Update last seen
-        user.last_seen_at = datetime.now(timezone.utc)
-        
-        # Create session
-        session_token = await self._create_session(user.id, circuit_hash)
-        
-        return AuthResponse(
-            success=True,
-            session_token=session_token,
-            user_id=str(user.id),
-            username=user.username,
-            role=user.role.value,
-            expires_in_seconds=settings.SESSION_EXPIRE_MINUTES * 60,
-        )
-    
-    async def validate_session(
-        self,
-        token: str,
-        circuit_hash: Optional[str] = None,
-    ) -> Optional[User]:
-        """Validate session token and return user."""
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        
-        result = await self.db.execute(
-            select(Session)
-            .where(Session.token_hash == token_hash)
-            .where(Session.expires_at > datetime.now(timezone.utc))
-        )
-        session = result.scalar_one_or_none()
-        
-        if not session:
-            return None
-        
-        # Update activity & extend expiry (sliding window)
-        session.last_activity_at = datetime.now(timezone.utc)
-        session.expires_at = datetime.now(timezone.utc) + timedelta(
-            minutes=settings.SESSION_EXPIRE_MINUTES
-        )
-        
-        # Get user
-        result = await self.db.execute(
-            select(User).where(User.id == session.user_id)
-        )
-        return result.scalar_one_or_none()
-    
-    async def logout(self, token: str) -> bool:
-        """Invalidate session."""
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        
-        await self.db.execute(
-            delete(Session).where(Session.token_hash == token_hash)
-        )
-        
-        return True
-    
-    # Private helpers
-    
-    async def _create_session(
-        self,
-        user_id: UUID,
-        circuit_hash: Optional[str] = None,
-    ) -> str:
-        """Create a new session."""
-        token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        
-        session = Session(
-            user_id=user_id,
-            token_hash=token_hash,
-            circuit_hash=circuit_hash,
-            expires_at=datetime.now(timezone.utc) + timedelta(
-                minutes=settings.SESSION_EXPIRE_MINUTES
-            ),
-        )
-        self.db.add(session)
-        
-        return token
-    
-    async def _check_rate_limit(self, key: str) -> None:
-        """Check and increment rate limit."""
-        redis_key = f"ratelimit:{key}"
-        count = await self.redis.incr(redis_key)
-        
-        if count == 1:
+                    # Allow for slight variations due to fees
