@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
 from app.database import get_db
-from app.dependencies import get_current_user, get_current_source, get_current_journalist, get_current_admin
+from app.dependencies import get_current_user, get_current_buyer, get_current_vendor, get_current_admin
 from app.services.lead_service import LeadService
-from app.models.user import User, JournalistProfile
+from app.models.user import User, VendorProfile
 from app.models.lead import Lead
 from app.schemas.lead import (
     LeadCreate,
@@ -16,7 +16,7 @@ from app.schemas.lead import (
     LeadListResponse,
     LeadInterestCreate,
     LeadInterestResponse,
-    AcceptJournalistRequest,
+    AcceptVendorRequest,
 )
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
@@ -31,20 +31,20 @@ async def get_lead_service() -> LeadService:
 async def create_lead(
     lead_data: LeadCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_source),
+    current_user: User = Depends(get_current_buyer),
     lead_service: LeadService = Depends(get_lead_service)
 ):
-    """Create a new lead (source only)."""
+    """Create a new lead (buyer only)."""
     
     lead = await lead_service.create_lead(
         db,
-        source_id=current_user.id,
+        buyer_id=current_user.id,
         title=lead_data.title,
         category=lead_data.category,
         scope=lead_data.scope,
         summary=lead_data.summary,
         evidence_types=lead_data.evidence_types,
-        preferred_journalist_qualities=lead_data.preferred_journalist_qualities
+        preferred_vendor_qualities=lead_data.preferred_vendor_qualities
     )
     
     return lead
@@ -57,10 +57,10 @@ async def list_leads(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_journalist),
+    current_user: User = Depends(get_current_vendor),
     lead_service: LeadService = Depends(get_lead_service)
 ):
-    """List active leads (journalist only)."""
+    """List active leads (vendor only)."""
     
     skip = (page - 1) * page_size
     leads, total = await lead_service.list_active_leads(
@@ -84,15 +84,15 @@ async def list_my_leads(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_source),
+    current_user: User = Depends(get_current_buyer),
     lead_service: LeadService = Depends(get_lead_service)
 ):
-    """List leads created by current source."""
+    """List leads created by current buyer."""
     
     skip = (page - 1) * page_size
-    leads, total = await lead_service.list_source_leads(
+    leads, total = await lead_service.list_buyer_leads(
         db,
-        source_id=current_user.id,
+        buyer_id=current_user.id,
         skip=skip,
         limit=page_size
     )
@@ -122,9 +122,8 @@ async def get_lead(
             detail="Lead not found"
         )
     
-    # Check permissions: owner, admin, or journalist viewing active leads
-    if lead.source_id != current_user.id and current_user.role.value != "admin":
-        if current_user.role.value != "journalist" or lead.status.value != "active":
+    if lead.buyer_id != current_user.id and current_user.role.value != "admin":
+        if current_user.role.value != "vendor" or lead.status.value != "active":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied"
@@ -138,10 +137,10 @@ async def update_lead(
     lead_id: int,
     lead_data: LeadUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_source),
+    current_user: User = Depends(get_current_buyer),
     lead_service: LeadService = Depends(get_lead_service)
 ):
-    """Update a lead (source only, draft status)."""
+    """Update a lead (buyer only, draft status)."""
     
     lead = await lead_service.get_lead_by_id(db, lead_id)
     
@@ -151,7 +150,7 @@ async def update_lead(
             detail="Lead not found"
         )
     
-    if lead.source_id != current_user.id:
+    if lead.buyer_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only update your own leads"
@@ -176,7 +175,7 @@ async def update_lead(
 async def submit_lead_for_review(
     lead_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_source),
+    current_user: User = Depends(get_current_buyer),
     lead_service: LeadService = Depends(get_lead_service)
 ):
     """Submit lead for admin review."""
@@ -189,7 +188,7 @@ async def submit_lead_for_review(
             detail="Lead not found"
         )
     
-    if lead.source_id != current_user.id:
+    if lead.buyer_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only submit your own leads"
@@ -210,15 +209,15 @@ async def express_interest(
     lead_id: int,
     interest_data: LeadInterestCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_journalist),
+    current_user: User = Depends(get_current_vendor),
     lead_service: LeadService = Depends(get_lead_service)
 ):
-    """Express interest in a lead (journalist only)."""
+    """Express interest in a lead (vendor only)."""
     
     success, interest, error = await lead_service.express_interest(
         db,
         lead_id=lead_id,
-        journalist_id=current_user.id,
+        vendor_id=current_user.id,
         pitch=interest_data.pitch
     )
     
@@ -235,10 +234,10 @@ async def express_interest(
 async def get_lead_interests(
     lead_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_source),
+    current_user: User = Depends(get_current_buyer),
     lead_service: LeadService = Depends(get_lead_service)
 ):
-    """Get all interests for a lead (source only)."""
+    """Get all interests for a lead (buyer only)."""
     
     lead = await lead_service.get_lead_by_id(db, lead_id)
     
@@ -248,7 +247,7 @@ async def get_lead_interests(
             detail="Lead not found"
         )
     
-    if lead.source_id != current_user.id:
+    if lead.buyer_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only view interests for your own leads"
@@ -256,23 +255,23 @@ async def get_lead_interests(
     
     interests = await lead_service.get_lead_interests(db, lead_id)
     
-    # Enrich with journalist info
+    # Enrich with vendor info
     result = []
     for interest in interests:
-        # Get journalist info
+        # Get vendor info
         from sqlalchemy import select
-        stmt = select(User, JournalistProfile).join(
-            JournalistProfile, User.id == JournalistProfile.user_id
-        ).where(User.id == interest.journalist_id)
+        stmt = select(User, VendorProfile).join(
+            VendorProfile, User.id == VendorProfile.user_id
+        ).where(User.id == interest.vendor_id)
         user_result = await db.execute(stmt)
         user_data = user_result.first()
         
         result.append(LeadInterestResponse(
             id=interest.id,
             lead_id=interest.lead_id,
-            journalist_id=interest.journalist_id,
-            journalist_username=user_data[0].username if user_data else "Unknown",
-            journalist_organization=user_data[1].organization if user_data and user_data[1] else None,
+            vendor_id=interest.vendor_id,
+            vendor_username=user_data[0].username if user_data else "Unknown",
+            vendor_organization=user_data[1].organization if user_data and user_data[1] else None,
             pitch=interest.pitch,
             status=interest.status.value,
             created_at=interest.created_at
@@ -281,15 +280,15 @@ async def get_lead_interests(
     return result
 
 
-@router.post("/{lead_id}/accept/{journalist_id}")
-async def accept_journalist(
+@router.post("/{lead_id}/accept/{vendor_id}")
+async def accept_vendor(
     lead_id: int,
-    journalist_id: int,
+    vendor_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_source),
+    current_user: User = Depends(get_current_buyer),
     lead_service: LeadService = Depends(get_lead_service)
 ):
-    """Accept a journalist's interest (source only)."""
+    """Accept a vendor's interest (buyer only)."""
     
     lead = await lead_service.get_lead_by_id(db, lead_id)
     
@@ -299,16 +298,16 @@ async def accept_journalist(
             detail="Lead not found"
         )
     
-    if lead.source_id != current_user.id:
+    if lead.buyer_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only accept journalists for your own leads"
+            detail="You can only accept vendors for your own leads"
         )
     
-    success, conversation, error = await lead_service.accept_journalist(
+    success, conversation, error = await lead_service.accept_vendor(
         db,
         lead,
-        journalist_id
+        vendor_id
     )
     
     if not success:
@@ -318,6 +317,6 @@ async def accept_journalist(
         )
     
     return {
-        "message": "Journalist accepted successfully",
+        "message": "Vendor accepted successfully",
         "conversation_id": conversation.id
     }

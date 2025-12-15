@@ -8,7 +8,7 @@ from typing import List
 from app.database import get_db
 from app.dependencies import get_current_admin, get_current_user
 from app.services.lead_service import LeadService
-from app.models.user import User, JournalistProfile, VerificationStatus
+from app.models.user import User, JournalistProfile, VendorProfile, VerificationStatus
 from app.models.lead import Lead, LeadStatus
 from app.models.listing import SupportListing, ListingStatus
 from app.schemas.admin import (
@@ -17,6 +17,8 @@ from app.schemas.admin import (
     RejectLeadRequest,
     PendingJournalistResponse,
     VerifyJournalistRequest,
+    PendingVendorResponse,
+    VerifyVendorRequest,
     PendingListingResponse,
     UserManagementResponse,
     SuspendUserRequest,
@@ -39,7 +41,7 @@ async def get_pending_leads(
     
     stmt = (
         select(Lead, User)
-        .join(User, Lead.source_id == User.id)
+        .join(User, Lead.buyer_id == User.id)
         .where(Lead.status == LeadStatus.PENDING_REVIEW)
         .order_by(Lead.created_at.asc())
     )
@@ -49,8 +51,8 @@ async def get_pending_leads(
     return [
         PendingLeadResponse(
             id=lead.id,
-            source_id=lead.source_id,
-            source_username=user.username,
+            buyer_id=lead.buyer_id,
+            buyer_username=user.username,
             title=lead.title,
             category=lead.category.value,
             scope=lead.scope.value,
@@ -180,6 +182,68 @@ async def verify_journalist(
     return {"message": "Journalist verified", "journalist_id": journalist_id}
 
 
+@router.get("/vendors/pending", response_model=List[PendingVendorResponse])
+async def get_pending_vendors(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """Get all pending vendor verifications."""
+    
+    stmt = (
+        select(User, VendorProfile)
+        .join(VendorProfile, User.id == VendorProfile.user_id)
+        .where(VendorProfile.verification_status == VerificationStatus.PENDING)
+        .order_by(User.created_at.asc())
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+    
+    return [
+        PendingVendorResponse(
+            id=profile.id,
+            user_id=user.id,
+            username=user.username,
+            organization=profile.organization,
+            position=profile.position,
+            website=profile.website,
+            bio=profile.bio,
+            created_at=user.created_at
+        )
+        for user, profile in rows
+    ]
+
+
+@router.post("/vendors/{vendor_id}/verify")
+async def verify_vendor(
+    vendor_id: int,
+    verify_data: VerifyVendorRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """Verify a vendor."""
+    
+    from datetime import datetime, timezone
+    
+    stmt = select(VendorProfile).where(VendorProfile.user_id == vendor_id)
+    result = await db.execute(stmt)
+    profile = result.scalar_one_or_none()
+    
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vendor profile not found"
+        )
+    
+    profile.verification_status = VerificationStatus.VERIFIED
+    profile.verification_notes = verify_data.notes
+    profile.verified_at = datetime.now(timezone.utc)
+    profile.verified_by_id = current_user.id
+    
+    await db.commit()
+    
+    return {"message": "Vendor verified", "vendor_id": vendor_id}
+
+
 @router.get("/listings/pending", response_model=List[PendingListingResponse])
 async def get_pending_listings(
     db: AsyncSession = Depends(get_db),
@@ -189,7 +253,7 @@ async def get_pending_listings(
     
     stmt = (
         select(SupportListing, User)
-        .join(User, SupportListing.source_id == User.id)
+        .join(User, SupportListing.buyer_id == User.id)
         .where(SupportListing.status == ListingStatus.PENDING_REVIEW)
         .order_by(SupportListing.created_at.asc())
     )
@@ -199,8 +263,8 @@ async def get_pending_listings(
     return [
         PendingListingResponse(
             id=listing.id,
-            source_id=listing.source_id,
-            source_username=user.username,
+            buyer_id=listing.buyer_id,
+            buyer_username=user.username,
             title=listing.title,
             slug=listing.slug,
             category=listing.category.value,

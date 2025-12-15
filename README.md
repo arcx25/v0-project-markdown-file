@@ -1,18 +1,20 @@
 # ARCHITECT // VAULT
 
-Secure platform connecting whistleblowers with verified journalists through PGP-authenticated, end-to-end encrypted channels.
+Secure platform connecting buyers with verified vendors through PGP-authenticated, end-to-end encrypted channels.
 
 ## Overview
 
-ARCHITECT // VAULT is a production-ready whistleblowing platform featuring:
+ARCHITECT // VAULT is a production-ready anonymous marketplace platform featuring:
 
 - **PGP-based authentication** - No passwords, cryptographic proof of identity
 - **End-to-end encryption** - Messages encrypted with recipient's public key
 - **Tor integration** - Hidden service for maximum anonymity
-- **Anonymous payments** - Monero-based donations for whistleblower support
-- **Lead management** - Sources submit leads, journalists express interest
+- **Anonymous payments** - Monero-based transactions for complete privacy
+- **Lead management** - Buyers submit leads, vendors express interest
 - **Secure messaging** - Encrypted conversations between matched parties
-- **Admin moderation** - Review system for leads, journalists, and listings
+- **Support listings** - Vendors create public profiles with contribution tiers
+- **Subscription system** - Tiered vendor access (Free, Freelancer, Outlet, Enterprise)
+- **Admin moderation** - Review system for leads, vendors, and listings
 
 ## Quick Start
 
@@ -22,7 +24,7 @@ ARCHITECT // VAULT is a production-ready whistleblowing platform featuring:
 - PostgreSQL 16
 - Redis 7.2
 - GnuPG 2.4+
-- Monero wallet RPC (optional, for payments)
+- Monero wallet RPC (for payments)
 - Docker & Docker Compose (for containerized deployment)
 
 ### Environment Setup
@@ -93,22 +95,45 @@ celery -A app.workers.celery_app beat --loglevel=info
 - **Anonymity**: Tor hidden service
 - **Templates**: Jinja2
 
+### User Roles
+
+- **Buyer**: Submits leads, accepts vendors, initiates transactions
+- **Vendor**: Browses leads, expresses interest, creates support listings
+- **Admin**: Moderates content, verifies vendors, manages platform
+
 ### Project Structure
 
 \`\`\`
 vault/
 ├── app/
 │   ├── api/              # REST API endpoints
+│   │   ├── auth.py       # Authentication
+│   │   ├── leads.py      # Lead management
+│   │   ├── messages.py   # Secure messaging
+│   │   ├── listings.py   # Support listings
+│   │   ├── subscriptions.py  # Vendor subscriptions
+│   │   └── admin.py      # Admin moderation
 │   ├── models/           # Database models
 │   ├── schemas/          # Pydantic schemas
 │   ├── services/         # Business logic
+│   │   ├── auth_service.py
+│   │   ├── pgp_service.py
+│   │   ├── monero_service.py
+│   │   ├── notification_service.py
+│   │   └── subscription_service.py
 │   ├── workers/          # Background tasks
+│   │   ├── payment_monitor.py
+│   │   └── cleanup.py
 │   ├── web/              # Web frontend routes
 │   ├── templates/        # HTML templates
 │   ├── static/           # CSS, JS, assets
 │   ├── config.py         # Configuration
 │   ├── database.py       # Database setup
 │   └── main.py           # Application entry
+├── deploy/               # Deployment scripts
+│   ├── scripts/          # Setup and deployment automation
+│   ├── config/           # Service configurations
+│   └── avalanche/        # Avalanche server deployment
 ├── scripts/              # Utility scripts
 ├── tests/                # Test suite
 ├── docker-compose.yml    # Docker services
@@ -131,26 +156,32 @@ Once running, access interactive API documentation at:
 - `POST /api/auth/login/verify` - Complete login
 
 **Leads**
-- `GET /api/leads` - Browse active leads (journalist)
-- `POST /api/leads` - Create lead (source)
-- `POST /api/leads/{id}/interest` - Express interest (journalist)
-- `POST /api/leads/{id}/accept/{journalist_id}` - Accept journalist (source)
+- `GET /api/leads` - Browse active leads (vendor)
+- `POST /api/leads` - Create lead (buyer)
+- `POST /api/leads/{id}/interest` - Express interest (vendor)
+- `POST /api/leads/{id}/accept/{vendor_id}` - Accept vendor (buyer)
 
 **Messages**
 - `GET /api/conversations` - List conversations
 - `GET /api/conversations/{id}/messages` - Get messages
-- `POST /api/conversations/{id}/messages` - Send message
+- `POST /api/conversations/{id}/messages` - Send encrypted message
 
 **Support Listings**
 - `GET /api/listings` - Browse listings (public)
-- `POST /api/listings` - Create listing (source)
+- `POST /api/listings` - Create listing (buyer)
 - `POST /api/listings/{slug}/contribute` - Initiate contribution
+
+**Subscriptions**
+- `GET /api/subscriptions/tiers` - View subscription tiers
+- `POST /api/subscriptions/subscribe` - Subscribe to tier
+- `POST /api/subscriptions/upgrade` - Upgrade tier
+- `POST /api/subscriptions/cancel` - Cancel subscription
 
 **Admin**
 - `GET /api/admin/leads/pending` - Pending leads
 - `POST /api/admin/leads/{id}/approve` - Approve lead
-- `GET /api/admin/journalists/pending` - Pending verifications
-- `POST /api/admin/journalists/{id}/verify` - Verify journalist
+- `GET /api/admin/vendors/pending` - Pending verifications
+- `POST /api/admin/vendors/{id}/verify` - Verify vendor
 
 ## Security
 
@@ -176,8 +207,24 @@ PGP-based challenge-response authentication:
 - Tor circuit binding for session security
 - Anonymous Monero payments (no blockchain trail)
 - Minimal metadata collection
+- Single-use payment addresses
 
 ## Deployment
+
+### Quick Deploy to Avalanche Server
+
+\`\`\`bash
+# Configure server credentials
+export AVALANCHE_HOST="91.98.16.255"
+export AVALANCHE_USER="root"
+
+# Run automated deployment
+bash deploy/avalanche/deploy_to_avalanche.sh
+\`\`\`
+
+### Manual Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for comprehensive deployment guide.
 
 ### Tor Hidden Service
 
@@ -202,16 +249,13 @@ cat /var/lib/tor/vault/hostname
 
 ### Production Checklist
 
-- [ ] Set strong `SECRET_KEY` (64+ characters)
-- [ ] Configure PostgreSQL with strong password
-- [ ] Set up Tor hidden service
-- [ ] Configure Monero wallet RPC
-- [ ] Enable HTTPS/TLS
-- [ ] Set up automated backups
-- [ ] Configure log rotation
-- [ ] Review security headers
-- [ ] Test PGP key import/verification
-- [ ] Initialize admin user
+See [PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md) for complete deployment checklist including:
+- Infrastructure setup
+- Security hardening
+- Database configuration
+- Tor setup
+- Monitoring and backups
+- Testing procedures
 
 ## Development
 
@@ -220,6 +264,13 @@ cat /var/lib/tor/vault/hostname
 \`\`\`bash
 pytest
 pytest --cov=app tests/
+pytest tests/test_auth.py -v
+\`\`\`
+
+### Load Testing
+
+\`\`\`bash
+locust -f tests/load_test.py --host=http://localhost:8000
 \`\`\`
 
 ### Code Quality
@@ -235,27 +286,65 @@ ruff check app/
 mypy app/
 \`\`\`
 
+## CLI Management
+
+\`\`\`bash
+# Create admin user
+python -m app.cli create-admin --username admin --email admin@vault.onion
+
+# Verify vendor
+python -m app.cli verify-vendor --user-id 123
+
+# Generate platform keys
+python scripts/generate_platform_keys.py
+
+# Database backup
+python -m app.cli backup-db --output ./backups/
+\`\`\`
+
+## Monitoring
+
+### Prometheus Metrics
+
+Metrics available at `/metrics`:
+- Request count and latency
+- Active sessions
+- Celery task queue depth
+- Database connection pool
+- PGP operations
+- Payment processing
+
+### Health Check
+
+\`\`\`bash
+curl http://localhost:8000/health
+\`\`\`
+
 ## Documentation
 
-For complete technical documentation, architecture details, and implementation guides, see [PROJECT.md](./PROJECT.md).
+For complete technical documentation, architecture details, and implementation guides:
+- [PROJECT.md](./PROJECT.md) - Full technical specification
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Deployment guide
+- [PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md) - Pre-launch checklist
+- [TESTING.md](./TESTING.md) - Testing guide
 
 ## Support
 
 ### Getting Help
 
-- Read the FAQ in [PROJECT.md](./PROJECT.md)
-- Check the [Security](./SECURITY.md) documentation
+- Review the FAQ in [PROJECT.md](./PROJECT.md)
+- Check [DEPLOYMENT.md](./DEPLOYMENT.md) for deployment issues
 - Review API documentation at `/docs`
 
 ### Reporting Issues
 
 For security issues, contact: security@vault.onion (PGP required)
 
-For bugs or features, open an issue with:
+For bugs or features, provide:
 - Description of the issue
 - Steps to reproduce
 - Expected vs actual behavior
-- Environment details
+- Environment details (Python version, OS, etc.)
 
 ## License
 
@@ -263,4 +352,4 @@ Open source under MIT License. See LICENSE file for details.
 
 ## Acknowledgments
 
-Built with security and privacy as first principles. Inspired by the need for secure journalist-source communication in the digital age.
+Built with security and privacy as first principles. Designed for secure anonymous marketplace transactions with end-to-end encryption and complete payment privacy via Monero.

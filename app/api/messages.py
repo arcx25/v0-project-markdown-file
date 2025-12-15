@@ -36,16 +36,13 @@ async def list_conversations(
     
     conversations = await message_service.list_user_conversations(db, current_user.id)
     
-    # Enrich with lead and other party info
     enriched = []
     for conv in conversations:
-        # Get lead
         stmt = select(Lead).where(Lead.id == conv.lead_id)
         result = await db.execute(stmt)
         lead = result.scalar_one_or_none()
         
-        # Get other party
-        other_party_id = conv.journalist_id if conv.source_id == current_user.id else conv.source_id
+        other_party_id = conv.vendor_id if conv.buyer_id == current_user.id else conv.buyer_id
         stmt = select(User).where(User.id == other_party_id)
         result = await db.execute(stmt)
         other_party = result.scalar_one_or_none()
@@ -54,8 +51,8 @@ async def list_conversations(
             id=conv.id,
             lead_id=conv.lead_id,
             lead_title=lead.title if lead else "Unknown Lead",
-            source_id=conv.source_id,
-            journalist_id=conv.journalist_id,
+            buyer_id=conv.buyer_id,
+            vendor_id=conv.vendor_id,
             other_party_username=other_party.username if other_party else "Unknown",
             is_active=conv.is_active,
             created_at=conv.created_at,
@@ -79,7 +76,6 @@ async def get_conversation(
 ):
     """Get a conversation with messages."""
     
-    # Get conversation
     conversation = await message_service.get_conversation_by_id(db, conversation_id)
     
     if not conversation:
@@ -88,8 +84,7 @@ async def get_conversation(
             detail="Conversation not found"
         )
     
-    # Verify user is part of conversation
-    if current_user.id not in [conversation.source_id, conversation.journalist_id]:
+    if current_user.id not in [conversation.buyer_id, conversation.vendor_id]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not part of this conversation"
@@ -116,7 +111,7 @@ async def get_conversation(
     result = await db.execute(stmt)
     lead = result.scalar_one_or_none()
     
-    other_party_id = conversation.journalist_id if conversation.source_id == current_user.id else conversation.source_id
+    other_party_id = conversation.vendor_id if conversation.buyer_id == current_user.id else conversation.buyer_id
     stmt = select(User).where(User.id == other_party_id)
     result = await db.execute(stmt)
     other_party = result.scalar_one_or_none()
@@ -126,8 +121,8 @@ async def get_conversation(
         id=conversation.id,
         lead_id=conversation.lead_id,
         lead_title=lead.title if lead else "Unknown Lead",
-        source_id=conversation.source_id,
-        journalist_id=conversation.journalist_id,
+        buyer_id=conversation.buyer_id,
+        vendor_id=conversation.vendor_id,
         other_party_username=other_party.username if other_party else "Unknown",
         is_active=conversation.is_active,
         created_at=conversation.created_at,

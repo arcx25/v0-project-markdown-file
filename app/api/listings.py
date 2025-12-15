@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
 from app.database import get_db
-from app.dependencies import get_current_user, get_current_source
+from app.dependencies import get_current_user, get_current_source, get_current_buyer
 from app.services.listing_service import ListingService
 from app.services.monero_service import MoneroService
 from app.services.price_oracle import PriceOracle
@@ -36,14 +36,14 @@ async def get_listing_service() -> ListingService:
 async def create_listing(
     listing_data: ListingCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_source),
+    current_user: User = Depends(get_current_buyer),
     listing_service: ListingService = Depends(get_listing_service)
 ):
-    """Create a new support listing (source only)."""
+    """Create a new support listing (buyer only)."""
     
     success, listing, error = await listing_service.create_listing(
         db,
-        source_id=current_user.id,
+        buyer_id=current_user.id,
         title=listing_data.title,
         slug=listing_data.slug,
         category=listing_data.category,
@@ -104,15 +104,9 @@ async def get_listing(
             detail="Listing not found"
         )
     
-    # Get tiers
-    from sqlalchemy import select
-    stmt = select(listing.__class__).where(listing.__class__.id == listing.id)
-    result = await db.execute(stmt)
-    listing = result.scalar_one()
-    
     return ListingDetailResponse(
         id=listing.id,
-        source_id=listing.source_id,
+        buyer_id=listing.buyer_id,
         title=listing.title,
         slug=listing.slug,
         category=listing.category.value,
@@ -125,8 +119,8 @@ async def get_listing(
         created_at=listing.created_at,
         updated_at=listing.updated_at,
         published_at=listing.published_at,
-        tiers=[],  # Would load tiers here
-        supporter_count=0  # Would count supporters here
+        tiers=[],
+        supporter_count=0
     )
 
 
