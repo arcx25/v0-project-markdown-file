@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Review Listings - Admin - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <aside class="admin-sidebar">
+        <div class="admin-branding">
+            <h2>Admin Panel</h2>
+        </div>
+        
+        <nav class="admin-nav">
+            <a href="/admin" class="admin-link">Dashboard</a>
+            <a href="/admin/leads" class="admin-link">Opportunities</a>
+            <a href="/admin/vendors" class="admin-link">Vendors</a>
+            <a href="/admin/listings" class="admin-link active">Listings</a>
+            <a href="/admin/users" class="admin-link">Users</a>
+        </nav>
+    </aside>
+    
+    <main class="admin-main">
+        <header class="page-header">
+            <h1>Review Support Listings</h1>
+            <p class="text-muted">{{ listings|length }} pending review</p>
+        </header>
+        
+        {% if listings %}
+        <div class="review-list">
+            {% for listing in listings %}
+            <article class="review-card">
+                <div class="review-header">
+                    <h3>{{ listing.title }}</h3>
+                    <span class="badge badge-warning">Pending Review</span>
+                </div>
+                
+                <div class="review-meta">
+                    <span><strong>Buyer:</strong> {{ listing.buyer.username }}</span>
+                    <span><strong>Category:</strong> {{ listing.category.value }}</span>
+                    <span><strong>Created:</strong> {{ listing.created_at | format_relative }}</span>
+                </div>
+                
+                <div class="review-content">
+                    <p>{{ listing.story | truncate(300) }}</p>
+                </div>
+                
+                <div class="review-actions">
+                    <form method="POST" action="/admin/listings/{{ listing.id }}/approve" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-success">Approve</button>
+                    </form>
+                    
+                    <a href="/support/{{ listing.slug }}" class="btn btn-secondary" target="_blank">
+                        Preview
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No listings pending review.</p>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

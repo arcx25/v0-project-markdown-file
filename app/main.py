@@ -11,6 +11,8 @@ from app.database import init_db
 from app.dependencies import get_redis
 from app.api.router import api_router
 from app.web.routes import router as web_router
+from app.web.admin_routes import router as admin_router
+from app.web.dashboard_routes import router as dashboard_router
 from app.middleware.rate_limiter import RateLimitMiddleware
 from app.middleware.security import SecurityHeadersMiddleware, TorCircuitMiddleware
 
@@ -72,7 +74,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # Include routers
 app.include_router(api_router)
 app.include_router(web_router)
-
+app.include_router(dashboard_router)
+app.include_router(admin_router)
 
 @app.get("/health")
 async def health():

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <aside class="admin-sidebar">
+        <div class="admin-branding">
+            <h2>Admin Panel</h2>
+        </div>
+        
+        <nav class="admin-nav">
+            <a href="/admin" class="admin-link {% if section == 'overview' %}active{% endif %}">
+                Dashboard
+            </a>
+            <a href="/admin/leads" class="admin-link {% if section == 'leads' %}active{% endif %}">
+                Opportunities
+                {% if stats.pending_leads > 0 %}
+                <span class="badge">{{ stats.pending_leads }}</span>
+                {% endif %}
+            </a>
+            <a href="/admin/vendors" class="admin-link {% if section == 'vendors' %}active{% endif %}">
+                Vendors
+                {% if stats.pending_vendors > 0 %}
+                <span class="badge">{{ stats.pending_vendors }}</span>
+                {% endif %}
+            </a>
+            <a href="/admin/listings" class="admin-link {% if section == 'listings' %}active{% endif %}">
+                Listings
+                {% if stats.pending_listings > 0 %}
+                <span class="badge">{{ stats.pending_listings }}</span>
+                {% endif %}
+            </a>
+            <a href="/admin/users" class="admin-link {% if section == 'users' %}active{% endif %}">
+                Users
+            </a>
+            <a href="/dashboard" class="admin-link">
+                Back to Dashboard
+            </a>
+        </nav>
+    </aside>
+    
+    <main class="admin-main">
+        <header class="page-header">
+            <h1>Admin Dashboard</h1>
+            <p class="text-muted">Platform moderation and management</p>
+        </header>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.pending_leads }}</span>
+                <span class="stat-label">Pending Opportunities</span>
+                <a href="/admin/leads" class="stat-link">Review →</a>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.pending_vendors }}</span>
+                <span class="stat-label">Pending Vendors</span>
+                <a href="/admin/vendors" class="stat-link">Review →</a>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.pending_listings }}</span>
+                <span class="stat-label">Pending Listings</span>
+                <a href="/admin/listings" class="stat-link">Review →</a>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.total_users }}</span>
+                <span class="stat-label">Total Users</span>
+                <a href="/admin/users" class="stat-link">Manage →</a>
+            </div>
+        </div>
+        
+        <div class="admin-sections">
+            <section class="admin-section">
+                <h2>Recent Activity</h2>
+                <p class="text-muted">Platform activity overview</p>
+            </section>
+        </div>
+    </main>
+</div>
+{% endblock %}

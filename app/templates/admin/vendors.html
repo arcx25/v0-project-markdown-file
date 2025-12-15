@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Vendors - Admin - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <aside class="admin-sidebar">
+        <div class="admin-branding">
+            <h2>Admin Panel</h2>
+        </div>
+        
+        <nav class="admin-nav">
+            <a href="/admin" class="admin-link">Dashboard</a>
+            <a href="/admin/leads" class="admin-link">Opportunities</a>
+            <a href="/admin/vendors" class="admin-link active">Vendors</a>
+            <a href="/admin/listings" class="admin-link">Listings</a>
+            <a href="/admin/users" class="admin-link">Users</a>
+        </nav>
+    </aside>
+    
+    <main class="admin-main">
+        <header class="page-header">
+            <h1>Verify Vendors</h1>
+            <p class="text-muted">{{ vendors|length }} pending verification</p>
+        </header>
+        
+        {% if vendors %}
+        <div class="review-list">
+            {% for user, profile in vendors %}
+            <article class="review-card">
+                <div class="review-header">
+                    <h3>{{ user.username }}</h3>
+                    <span class="badge badge-warning">Pending Verification</span>
+                </div>
+                
+                <div class="vendor-details">
+                    {% if profile.organization %}
+                    <p><strong>Organization:</strong> {{ profile.organization }}</p>
+                    {% endif %}
+                    {% if profile.position %}
+                    <p><strong>Position:</strong> {{ profile.position }}</p>
+                    {% endif %}
+                    {% if profile.website %}
+                    <p><strong>Website:</strong> <a href="{{ profile.website }}" target="_blank">{{ profile.website }}</a></p>
+                    {% endif %}
+                    {% if profile.bio %}
+                    <p><strong>Bio:</strong> {{ profile.bio }}</p>
+                    {% endif %}
+                    <p><strong>Registered:</strong> {{ user.created_at | format_datetime }}</p>
+                </div>
+                
+                <div class="review-actions">
+                    <form method="POST" action="/admin/vendors/{{ user.id }}/verify" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-success">Verify</button>
+                    </form>
+                    
+                    <button type="button" class="btn btn-danger" onclick="showRejectForm('{{ user.id }}')">
+                        Reject
+                    </button>
+                </div>
+                
+                <div id="reject-form-{{ user.id }}" class="reject-form" style="display: none;">
+                    <form method="POST" action="/admin/vendors/{{ user.id }}/reject">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <label for="reason-{{ user.id }}">Rejection Reason:</label>
+                        <textarea name="reason" id="reason-{{ user.id }}" rows="3" required></textarea>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-danger">Confirm Reject</button>
+                            <button type="button" class="btn btn-secondary" onclick="hideRejectForm('{{ user.id }}')">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No vendors pending verification.</p>
+        </div>
+        {% endif %}
+    </main>
+</div>
+
+<script>
+function showRejectForm(id) {
+    document.getElementById('reject-form-' + id).style.display = 'block';
+}
+function hideRejectForm(id) {
+    document.getElementById('reject-form-' + id).style.display = 'none';
+}
+</script>
+{% endblock %}

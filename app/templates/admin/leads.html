@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Review Opportunities - Admin - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <aside class="admin-sidebar">
+        <div class="admin-branding">
+            <h2>Admin Panel</h2>
+        </div>
+        
+        <nav class="admin-nav">
+            <a href="/admin" class="admin-link">Dashboard</a>
+            <a href="/admin/leads" class="admin-link active">Opportunities</a>
+            <a href="/admin/vendors" class="admin-link">Vendors</a>
+            <a href="/admin/listings" class="admin-link">Listings</a>
+            <a href="/admin/users" class="admin-link">Users</a>
+        </nav>
+    </aside>
+    
+    <main class="admin-main">
+        <header class="page-header">
+            <h1>Review Opportunities</h1>
+            <p class="text-muted">{{ leads|length }} pending review</p>
+        </header>
+        
+        {% if leads %}
+        <div class="review-list">
+            {% for lead in leads %}
+            <article class="review-card">
+                <div class="review-header">
+                    <h3>{{ lead.title }}</h3>
+                    <span class="badge badge-warning">Pending Review</span>
+                </div>
+                
+                <div class="review-meta">
+                    <span><strong>Buyer:</strong> {{ lead.buyer.username }}</span>
+                    <span><strong>Category:</strong> {{ lead.category.value }}</span>
+                    <span><strong>Submitted:</strong> {{ lead.created_at | format_relative }}</span>
+                </div>
+                
+                <div class="review-content">
+                    <p>{{ lead.summary }}</p>
+                </div>
+                
+                <div class="review-actions">
+                    <form method="POST" action="/admin/leads/{{ lead.id }}/approve" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-success">Approve</button>
+                    </form>
+                    
+                    <button type="button" class="btn btn-danger" onclick="showRejectForm('{{ lead.id }}')">
+                        Reject
+                    </button>
+                </div>
+                
+                <div id="reject-form-{{ lead.id }}" class="reject-form" style="display: none;">
+                    <form method="POST" action="/admin/leads/{{ lead.id }}/reject">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <label for="reason-{{ lead.id }}">Rejection Reason:</label>
+                        <textarea name="reason" id="reason-{{ lead.id }}" rows="3" required></textarea>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-danger">Confirm Reject</button>
+                            <button type="button" class="btn btn-secondary" onclick="hideRejectForm('{{ lead.id }}')">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No opportunities pending review.</p>
+        </div>
+        {% endif %}
+    </main>
+</div>
+
+<script>
+function showRejectForm(id) {
+    document.getElementById('reject-form-' + id).style.display = 'block';
+}
+function hideRejectForm(id) {
+    document.getElementById('reject-form-' + id).style.display = 'none';
+}
+</script>
+{% endblock %}
