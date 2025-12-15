@@ -3,55 +3,144 @@
 {% block title %}About - ARCHITECT // VAULT{% endblock %}
 
 {% block content %}
-<section class="about-page">
-    <div class="container">
+<div class="about-page">
+    <header class="page-header">
         <h1>About ARCHITECT // VAULT</h1>
+        <p class="tagline">Secure V3 marketplace infrastructure for anonymous commerce</p>
+    </header>
+    
+    {# Adapted mission from whistleblower to marketplace model #}
+    <section class="about-section">
+        <h2>Our Mission</h2>
+        <p>
+            ARCHITECT // VAULT is a secure V3 marketplace connecting buyers and vendors 
+            anonymously. We provide cryptographically authenticated channels ensuring 
+            privacy and security for all marketplace participants without compromising 
+            operational security.
+        </p>
+    </section>
+    
+    {# Updated workflow for buyer/vendor marketplace #}
+    <section class="about-section">
+        <h2>How It Works</h2>
         
-        <div class="content-section">
-            <h2>Mission</h2>
-            <p>ARCHITECT // VAULT is a secure platform designed to connect whistleblowers with verified journalists through cryptographically authenticated, end-to-end encrypted channels.</p>
-        </div>
-
-        <div class="content-section">
-            <h2>Security Architecture</h2>
-            <h3>PGP-Based Authentication (ARCHITECT Protocol)</h3>
-            <p>No passwords. Users authenticate using cryptographic challenge-response with their PGP keys.</p>
+        <div class="how-it-works-grid">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <h3>Anonymous Registration</h3>
+                <p>
+                    Create an account using only a PGP key. No email, no phone, 
+                    no personal information required. Your cryptographic key is 
+                    your identity.
+                </p>
+            </div>
             
-            <h3>End-to-End Encryption</h3>
-            <p>All messages are encrypted with the recipient's public key. The platform cannot read message contents.</p>
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <h3>Post or Browse Opportunities</h3>
+                <p>
+                    Buyers post opportunities. Vendors browse listings and express 
+                    interest. The system facilitates matching without revealing 
+                    identities until both parties agree.
+                </p>
+            </div>
             
-            <h3>Tor Integration</h3>
-            <p>Access via Tor hidden service ensures maximum anonymity and protection against network surveillance.</p>
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <h3>Review and Match</h3>
+                <p>
+                    Verified vendors submit proposals. Buyers review credentials 
+                    and proposals, then choose their preferred vendor to work with.
+                </p>
+            </div>
             
-            <h3>Anonymous Payments</h3>
-            <p>Monero-based donations provide untraceable financial support for whistleblowers.</p>
+            <div class="step-card">
+                <div class="step-number">4</div>
+                <h3>Communicate Securely</h3>
+                <p>
+                    All messages are end-to-end encrypted with PGP. Even we cannot 
+                    read your communications. Transaction details shared through 
+                    encrypted channels only.
+                </p>
+            </div>
         </div>
+    </section>
+    
+    <section class="about-section">
+        <h2>Security Architecture</h2>
+        <h3>PGP-Based Authentication (ARCHITECT Protocol)</h3>
+        <p>No passwords. Users authenticate using cryptographic challenge-response with their PGP keys.</p>
+        
+        <h3>End-to-End Encryption</h3>
+        <p>All messages are encrypted with the recipient's public key. The platform cannot read message contents.</p>
+        
+        <h3>Tor Integration</h3>
+        <p>Access via Tor hidden service ensures maximum anonymity and protection against network surveillance.</p>
+        
+        <h3>Anonymous Payments</h3>
+        <p>Monero-based donations provide untraceable financial support for whistleblowers.</p>
+    </section>
 
-        <div class="content-section">
-            <h2>How to Use</h2>
-            <h3>For Sources (Whistleblowers)</h3>
-            <ol>
-                <li>Generate a PGP key pair if you don't have one</li>
-                <li>Register with your public key</li>
-                <li>Submit leads describing your information</li>
-                <li>Review journalist interest and select a match</li>
-                <li>Communicate securely through encrypted messages</li>
-            </ol>
+    <section class="about-section">
+        <h2>How to Use</h2>
+        <h3>For Sources (Whistleblowers)</h3>
+        <ol>
+            <li>Generate a PGP key pair if you don't have one</li>
+            <li>Register with your public key</li>
+            <li>Submit leads describing your information</li>
+            <li>Review journalist interest and select a match</li>
+            <li>Communicate securely through encrypted messages</li>
+        </ol>
 
-            <h3>For Journalists</h3>
-            <ol>
-                <li>Register with your PGP public key</li>
-                <li>Complete verification process (organization, credentials)</li>
-                <li>Browse active leads</li>
-                <li>Express interest with a pitch</li>
-                <li>If selected, communicate securely with the source</li>
-            </ol>
-        </div>
+        <h3>For Journalists</h3>
+        <ol>
+            <li>Register with your PGP public key</li>
+            <li>Complete verification process (organization, credentials)</li>
+            <li>Browse active leads</li>
+            <li>Express interest with a pitch</li>
+            <li>If selected, communicate securely with the source</li>
+        </ol>
+    </section>
 
-        <div class="content-section">
-            <h2>Open Source</h2>
-            <p>ARCHITECT // VAULT is open source software. The codebase is available for audit and contribution.</p>
-        </div>
-    </div>
-</section>
+    {# Updated for vendor/buyer roles #}
+    <section class="about-section">
+        <h2>For Vendors</h2>
+        <p>
+            We verify vendor credentials to build trust with buyers. 
+            Verified vendors get priority visibility and can demonstrate 
+            their legitimacy to potential buyers.
+        </p>
+        <ul>
+            <li>Free tier: Browse opportunities, limited proposals</li>
+            <li>Paid tiers: Unlimited access, priority matching, API access</li>
+            <li>Organization accounts: Team collaboration features</li>
+        </ul>
+        <a href="/register?role=vendor" class="btn btn-secondary">
+            Register as Vendor
+        </a>
+    </section>
+    
+    {# Updated for buyer role #}
+    <section class="about-section">
+        <h2>For Buyers</h2>
+        <p>
+            Your privacy is our priority. We've designed every feature with 
+            buyer anonymity in mind.
+        </p>
+        <ul>
+            <li>Anonymous identity with generated aliases</li>
+            <li>You choose which vendor to work with</li>
+            <li>You control what information is shared</li>
+            <li>Optional support listings for crowdfunding</li>
+        </ul>
+        <a href="/register?role=buyer" class="btn btn-primary">
+            Register as Buyer
+        </a>
+    </section>
+    
+    <section class="about-section">
+        <h2>Open Source</h2>
+        <p>ARCHITECT // VAULT is open source software. The codebase is available for audit and contribution.</p>
+    </section>
+</div>
 {% endblock %}

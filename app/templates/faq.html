@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}FAQ - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<div class="faq-page">
+    <header class="page-header">
+        <h1>Frequently Asked Questions</h1>
+    </header>
+    
+    <div class="faq-container">
+        {# Adapted FAQ content for marketplace model #}
+        <section class="faq-section">
+            <h2>General</h2>
+            
+            <details class="faq-item">
+                <summary>What is ARCHITECT // VAULT?</summary>
+                <div class="faq-answer">
+                    <p>
+                        ARCHITECT // VAULT is a secure V3 marketplace platform that connects 
+                        buyers with verified vendors. We provide anonymous communication channels 
+                        and payment mechanisms for secure commerce.
+                    </p>
+                </div>
+            </details>
+            
+            <details class="faq-item">
+                <summary>Is this platform free to use?</summary>
+                <div class="faq-answer">
+                    <p>
+                        For buyers, the platform is completely free. Vendors 
+                        can use basic features for free, with paid tiers available 
+                        for additional capabilities like unlimited proposals 
+                        and API access.
+                    </p>
+                </div>
+            </details>
+        </section>
+        
+    </div>
+</div>
+{% endblock %}

@@ -1,20 +1,19 @@
-# ARCHITECT // VAULT
+# ARCHITECT - Anonymous XMR Marketplace
 
-Secure platform connecting buyers with verified vendors through PGP-authenticated, end-to-end encrypted channels.
+**Secure marketplace platform connecting buyers with verified vendors through PGP-authenticated, end-to-end encrypted channels.**
 
 ## Overview
 
-ARCHITECT // VAULT is a production-ready anonymous marketplace platform featuring:
+ARCHITECT is a production-ready anonymous darknet marketplace featuring:
 
 - **PGP-based authentication** - No passwords, cryptographic proof of identity
-- **End-to-end encryption** - Messages encrypted with recipient's public key
-- **Tor integration** - Hidden service for maximum anonymity
-- **Anonymous payments** - Monero-based transactions for complete privacy
-- **Lead management** - Buyers submit leads, vendors express interest
-- **Secure messaging** - Encrypted conversations between matched parties
-- **Support listings** - Vendors create public profiles with contribution tiers
-- **Subscription system** - Tiered vendor access (Free, Freelancer, Outlet, Enterprise)
-- **Admin moderation** - Review system for leads, vendors, and listings
+- **End-to-end encryption** - All messages encrypted with recipient's public key
+- **Tor-only access** - Hidden service (.onion) for maximum anonymity
+- **Monero payments** - XMR-only transactions for complete payment privacy
+- **Opportunity marketplace** - Buyers post needs, vendors submit proposals
+- **Escrow system** - Multi-signature escrow for transaction protection
+- **Vendor verification** - Admin-verified sellers with reputation tracking
+- **Subscription tiers** - Tiered vendor access (Free, Professional, Enterprise)
 
 ## Quick Start
 
@@ -97,9 +96,9 @@ celery -A app.workers.celery_app beat --loglevel=info
 
 ### User Roles
 
-- **Buyer**: Submits leads, accepts vendors, initiates transactions
-- **Vendor**: Browses leads, expresses interest, creates support listings
-- **Admin**: Moderates content, verifies vendors, manages platform
+- **Buyer**: Posts opportunities, reviews vendor proposals, initiates purchases
+- **Vendor**: Browses opportunities, submits proposals, creates product listings
+- **Admin**: Verifies vendors, moderates content, resolves disputes
 
 ### Project Structure
 
@@ -151,36 +150,36 @@ Once running, access interactive API documentation at:
 
 **Authentication**
 - `POST /api/auth/register/challenge` - Initiate registration
-- `POST /api/auth/register/verify` - Complete registration
+- `POST /api/auth/register/verify` - Complete registration with PGP signature
 - `POST /api/auth/login/challenge` - Initiate login
-- `POST /api/auth/login/verify` - Complete login
+- `POST /api/auth/login/verify` - Complete login with PGP signature
 
-**Leads**
-- `GET /api/leads` - Browse active leads (vendor)
-- `POST /api/leads` - Create lead (buyer)
-- `POST /api/leads/{id}/interest` - Express interest (vendor)
+**Marketplace Opportunities**
+- `GET /api/leads` - Browse active opportunities (vendor)
+- `POST /api/leads` - Create opportunity (buyer)
+- `POST /api/leads/{id}/interest` - Submit proposal (vendor)
 - `POST /api/leads/{id}/accept/{vendor_id}` - Accept vendor (buyer)
 
+**Product Listings**
+- `GET /api/listings` - Browse vendor listings (public)
+- `POST /api/listings` - Create listing (vendor)
+- `POST /api/listings/{slug}/purchase` - Initiate purchase
+
 **Messages**
-- `GET /api/conversations` - List conversations
+- `GET /api/conversations` - List encrypted conversations
 - `GET /api/conversations/{id}/messages` - Get messages
 - `POST /api/conversations/{id}/messages` - Send encrypted message
 
-**Support Listings**
-- `GET /api/listings` - Browse listings (public)
-- `POST /api/listings` - Create listing (buyer)
-- `POST /api/listings/{slug}/contribute` - Initiate contribution
-
 **Subscriptions**
-- `GET /api/subscriptions/tiers` - View subscription tiers
+- `GET /api/subscriptions/tiers` - View vendor subscription tiers
 - `POST /api/subscriptions/subscribe` - Subscribe to tier
-- `POST /api/subscriptions/upgrade` - Upgrade tier
+- `POST /api/subscriptions/upgrade` - Upgrade subscription
 - `POST /api/subscriptions/cancel` - Cancel subscription
 
 **Admin**
-- `GET /api/admin/leads/pending` - Pending leads
-- `POST /api/admin/leads/{id}/approve` - Approve lead
-- `GET /api/admin/vendors/pending` - Pending verifications
+- `GET /api/admin/leads/pending` - Pending opportunities
+- `POST /api/admin/leads/{id}/approve` - Approve opportunity
+- `GET /api/admin/vendors/pending` - Pending vendor verifications
 - `POST /api/admin/vendors/{id}/verify` - Verify vendor
 
 ## Security

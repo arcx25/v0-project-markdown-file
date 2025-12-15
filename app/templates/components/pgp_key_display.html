@@ -1,0 +1,24 @@
+{# Component to display PGP key information #}
+{% macro render_pgp_info(fingerprint, public_key, show_full_key=True) %}
+<div class="pgp-info-card">
+    <div class="pgp-fingerprint">
+        <label>PGP Fingerprint:</label>
+        <code class="fingerprint">{{ fingerprint }}</code>
+    </div>
+    
+    {% if show_full_key %}
+    <details class="pgp-key-details">
+        <summary>View Full Public Key</summary>
+        <div class="pgp-key-container">
+            <pre class="pgp-block">{{ public_key }}</pre>
+            <p class="pgp-instructions">
+                <strong>To import this key:</strong><br>
+                1. Copy the entire block above (including BEGIN/END lines)<br>
+                2. Save to a file: <code>key.asc</code><br>
+                3. Import: <code>gpg --import key.asc</code>
+            </p>
+        </div>
+    </details>
+    {% endif %}
+</div>
+{% endmacro %}

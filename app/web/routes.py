@@ -96,7 +96,10 @@ def get_template_context(request: Request, **kwargs) -> dict:
     return {
         "request": request,
         "csrf_token": generate_csrf_token(request),
-        "platform_fingerprint": settings.PLATFORM_PGP_FINGERPRINT if hasattr(settings, 'PLATFORM_PGP_FINGERPRINT') else None,
+        "platform_fingerprint": getattr(settings, 'PLATFORM_PGP_FINGERPRINT', None),
+        "onion_hostname": getattr(settings, 'ONION_HOSTNAME', None),
+        "fee_percent": getattr(settings, 'DONATION_FEE_PERCENT', 5),
+        "confirmations_required": getattr(settings, 'MONERO_CONFIRMATIONS_REQUIRED', 10),
         **kwargs
     }
 
@@ -220,4 +223,21 @@ async def support_listings(
             page=page,
             total_pages=(total + page_size - 1) // page_size,
         )
+    )
+
+@router.get("/faq", response_class=HTMLResponse)
+async def faq_page(request: Request):
+    """FAQ page."""
+    return templates.TemplateResponse(
+        "faq.html",
+        get_template_context(request)
+    )
+
+
+@router.get("/security", response_class=HTMLResponse)
+async def security_page(request: Request):
+    """Security information page."""
+    return templates.TemplateResponse(
+        "security.html",
+        get_template_context(request)
     )
