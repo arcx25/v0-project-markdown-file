@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <h1 class="hero-title">Secure Whistleblowing Platform</h1>
+            <p class="hero-subtitle">Connect with verified journalists through PGP-authenticated, end-to-end encrypted channels</p>
+            <div class="hero-actions">
+                <a href="/register" class="btn-primary btn-lg">Get Started</a>
+                <a href="/about" class="btn-secondary btn-lg">Learn More</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="features">
+    <div class="container">
+        <h2 class="section-title">Why ARCHITECT // VAULT</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔐</div>
+                <h3>PGP Authentication</h3>
+                <p>No passwords. Cryptographic proof of identity using your PGP key.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>End-to-End Encryption</h3>
+                <p>Messages encrypted with recipient's public key. Platform cannot read content.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <h3>Tor Integration</h3>
+                <p>Access via Tor hidden service for maximum anonymity and privacy.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <h3>Anonymous Payments</h3>
+                <p>Monero-based donations and support with untraceable transactions.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✅</div>
+                <h3>Verified Journalists</h3>
+                <p>All journalists are verified by administrators before accessing leads.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Lead Management</h3>
+                <p>Submit leads, review journalist interest, and establish secure connections.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="how-it-works">
+    <div class="container">
+        <h2 class="section-title">How It Works</h2>
+        <div class="steps-grid">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Register with PGP</h3>
+                <p>Create an account using your PGP key. No email or personal information required.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Submit or Browse</h3>
+                <p>Sources submit leads. Journalists browse and express interest.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Secure Matching</h3>
+                <p>Sources review journalist credentials and select their preferred match.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <h3>Encrypted Communication</h3>
+                <p>Exchange messages through end-to-end encrypted conversations.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta">
+    <div class="container">
+        <div class="cta-content">
+            <h2>Ready to Start?</h2>
+            <p>Join ARCHITECT // VAULT and make a difference through secure journalism.</p>
+            <div class="cta-actions">
+                <a href="/register?role=source" class="btn-primary btn-lg">I'm a Source</a>
+                <a href="/register?role=journalist" class="btn-secondary btn-lg">I'm a Journalist</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

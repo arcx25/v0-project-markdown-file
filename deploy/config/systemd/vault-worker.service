@@ -1,0 +1,47 @@
+[Unit]
+Description=ARCHITECT // VAULT - Celery Worker
+After=network.target postgresql.service redis.service vault-web.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=forking
+User=vault
+Group=vault
+WorkingDirectory=/opt/vault
+
+# Load environment variables
+EnvironmentFile=/etc/vault/environment
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/vault /var/log/vault
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=512
+
+# Start command
+ExecStart=/opt/vault/venv/bin/celery -A app.workers.celery_app worker \
+    --loglevel=info \
+    --concurrency=2 \
+    --max-tasks-per-child=100 \
+    --pidfile=/var/run/vault/worker.pid
+
+# Restart policy
+Restart=always
+RestartSec=10
+TimeoutStopSec=60
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vault-worker
+
+[Install]
+WantedBy=multi-user.target

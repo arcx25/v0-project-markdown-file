@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Login - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<section class="auth-page">
+    <div class="container">
+        <div class="auth-card">
+            <h1>Login</h1>
+            <p class="auth-subtitle">Authenticate with your PGP key</p>
+            
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+
+                <div id="challengeSection" style="display: none;">
+                    <div class="alert alert-info">
+                        <h4>Challenge Received</h4>
+                        <p>Sign the following challenge with your PGP private key:</p>
+                        <pre id="challengeText" class="challenge-box"></pre>
+                        <p>Use: <code>gpg --clearsign -u YOUR_KEY</code></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signed_challenge">Signed Challenge</label>
+                        <textarea id="signed_challenge" name="signed_challenge" rows="15" required placeholder="-----BEGIN PGP SIGNED MESSAGE-----"></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-block">Continue</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Don't have an account? <a href="/register">Register</a></p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

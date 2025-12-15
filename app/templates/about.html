@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}About - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<section class="about-page">
+    <div class="container">
+        <h1>About ARCHITECT // VAULT</h1>
+        
+        <div class="content-section">
+            <h2>Mission</h2>
+            <p>ARCHITECT // VAULT is a secure platform designed to connect whistleblowers with verified journalists through cryptographically authenticated, end-to-end encrypted channels.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Security Architecture</h2>
+            <h3>PGP-Based Authentication (ARCHITECT Protocol)</h3>
+            <p>No passwords. Users authenticate using cryptographic challenge-response with their PGP keys.</p>
+            
+            <h3>End-to-End Encryption</h3>
+            <p>All messages are encrypted with the recipient's public key. The platform cannot read message contents.</p>
+            
+            <h3>Tor Integration</h3>
+            <p>Access via Tor hidden service ensures maximum anonymity and protection against network surveillance.</p>
+            
+            <h3>Anonymous Payments</h3>
+            <p>Monero-based donations provide untraceable financial support for whistleblowers.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>How to Use</h2>
+            <h3>For Sources (Whistleblowers)</h3>
+            <ol>
+                <li>Generate a PGP key pair if you don't have one</li>
+                <li>Register with your public key</li>
+                <li>Submit leads describing your information</li>
+                <li>Review journalist interest and select a match</li>
+                <li>Communicate securely through encrypted messages</li>
+            </ol>
+
+            <h3>For Journalists</h3>
+            <ol>
+                <li>Register with your PGP public key</li>
+                <li>Complete verification process (organization, credentials)</li>
+                <li>Browse active leads</li>
+                <li>Express interest with a pitch</li>
+                <li>If selected, communicate securely with the source</li>
+            </ol>
+        </div>
+
+        <div class="content-section">
+            <h2>Open Source</h2>
+            <p>ARCHITECT // VAULT is open source software. The codebase is available for audit and contribution.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Leads - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<section class="leads-page">
+    <div class="container">
+        <div class="page-header">
+            <h1>Browse Leads</h1>
+            <p>Active whistleblower leads seeking journalist partnerships</p>
+        </div>
+
+        <div class="filters">
+            <select id="categoryFilter" class="filter-select">
+                <option value="">All Categories</option>
+                <option value="corruption">Corruption</option>
+                <option value="corporate_misconduct">Corporate Misconduct</option>
+                <option value="government_abuse">Government Abuse</option>
+                <option value="environmental">Environmental</option>
+                <option value="human_rights">Human Rights</option>
+                <option value="financial">Financial</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="technology">Technology</option>
+            </select>
+
+            <select id="scopeFilter" class="filter-select">
+                <option value="">All Scopes</option>
+                <option value="local">Local</option>
+                <option value="regional">Regional</option>
+                <option value="national">National</option>
+                <option value="international">International</option>
+            </select>
+        </div>
+
+        <div id="leadsList" class="leads-grid">
+            <!-- Leads will be loaded here dynamically -->
+            <div class="lead-card">
+                <div class="lead-header">
+                    <span class="lead-category">Corruption</span>
+                    <span class="lead-scope">National</span>
+                </div>
+                <h3 class="lead-title">Government Contract Fraud Investigation</h3>
+                <p class="lead-summary">Evidence of systematic fraud in government contracting process affecting millions in taxpayer funds...</p>
+                <div class="lead-footer">
+                    <span class="lead-date">Posted 2 days ago</span>
+                    <a href="#" class="btn-primary btn-sm">Express Interest</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="pagination">
+            <button class="btn-secondary">Previous</button>
+            <span>Page 1 of 5</span>
+            <button class="btn-secondary">Next</button>
+        </div>
+    </div>
+</section>
+{% endblock %}

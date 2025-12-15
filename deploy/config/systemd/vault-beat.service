@@ -1,0 +1,41 @@
+[Unit]
+Description=ARCHITECT // VAULT - Celery Beat Scheduler
+After=network.target redis.service vault-worker.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=vault
+Group=vault
+WorkingDirectory=/opt/vault
+
+# Load environment variables
+EnvironmentFile=/etc/vault/environment
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/vault /var/log/vault
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Start command
+ExecStart=/opt/vault/venv/bin/celery -A app.workers.celery_app beat \
+    --loglevel=info \
+    --pidfile=/var/run/vault/beat.pid \
+    --schedule=/var/lib/vault/celerybeat-schedule
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vault-beat
+
+[Install]
+WantedBy=multi-user.target

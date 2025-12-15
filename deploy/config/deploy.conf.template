@@ -1,0 +1,50 @@
+#!/bin/bash
+# ARCHITECT // VAULT - Deployment Configuration Template
+# 
+# SECURITY: Never commit this file to version control!
+# Copy to deploy/config/deploy.conf and fill in your values.
+
+# =============================================================================
+# SERVER CONNECTION
+# =============================================================================
+
+DEPLOY_HOST="YOUR_SERVER_IP"
+DEPLOY_USER="vault"
+DEPLOY_PORT="22"
+SSH_KEY_PATH="$HOME/.ssh/vault_deploy_key"
+
+# =============================================================================
+# APPLICATION SETTINGS
+# =============================================================================
+
+APP_DIR="/opt/vault"
+ONION_HOSTNAME=""  # Will be generated during Tor setup
+CLEARNET_HOSTNAME=""  # Optional
+
+# =============================================================================
+# DATABASE
+# =============================================================================
+
+DB_NAME="vault"
+DB_USER="vault"
+DB_PASSWORD="$(openssl rand -base64 32)"
+
+# =============================================================================
+# REDIS
+# =============================================================================
+
+REDIS_PASSWORD="$(openssl rand -base64 32)"
+
+# =============================================================================
+# MONERO
+# =============================================================================
+
+MONERO_RPC_USER="vault_rpc"
+MONERO_RPC_PASSWORD="$(openssl rand -base64 32)"
+
+# =============================================================================
+# SECRETS
+# =============================================================================
+
+SECRET_KEY="$(openssl rand -hex 32)"
+PGP_PASSPHRASE="$(openssl rand -base64 24)"

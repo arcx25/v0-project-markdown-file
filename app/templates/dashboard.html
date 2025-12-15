@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<section class="dashboard">
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>Dashboard</h1>
+            <p>Welcome back, {{ user.username }}</p>
+        </div>
+
+        <div class="dashboard-grid">
+            {% if user.role.value == 'source' %}
+                <div class="dashboard-card">
+                    <h3>My Leads</h3>
+                    <p>Manage your submitted leads and review journalist interest</p>
+                    <a href="/leads/my-leads" class="btn-primary">View Leads</a>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Create Lead</h3>
+                    <p>Submit a new lead to connect with journalists</p>
+                    <a href="/leads/create" class="btn-secondary">Create Lead</a>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>My Listings</h3>
+                    <p>Manage your support listings and view contributions</p>
+                    <a href="/listings/my-listings" class="btn-primary">View Listings</a>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Create Listing</h3>
+                    <p>Create a new support listing for your cause</p>
+                    <a href="/listings/create" class="btn-secondary">Create Listing</a>
+                </div>
+
+            {% elif user.role.value == 'journalist' %}
+                <div class="dashboard-card">
+                    <h3>Browse Leads</h3>
+                    <p>Explore active leads and express your interest</p>
+                    <a href="/leads" class="btn-primary">Browse Leads</a>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>My Interests</h3>
+                    <p>Track leads you've expressed interest in</p>
+                    <a href="/leads/interests" class="btn-secondary">View Interests</a>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Subscription</h3>
+                    <p>Manage your subscription tier and benefits</p>
+                    <a href="/subscription" class="btn-primary">View Subscription</a>
+                </div>
+
+            {% elif user.role.value == 'admin' %}
+                <div class="dashboard-card">
+                    <h3>Pending Leads</h3>
+                    <p>Review and approve submitted leads</p>
+                    <a href="/admin/leads" class="btn-primary">Review Leads</a>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Journalist Verification</h3>
+                    <p>Verify journalist credentials</p>
+                    <a href="/admin/journalists" class="btn-primary">Verify Journalists</a>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Pending Listings</h3>
+                    <p>Review and approve support listings</p>
+                    <a href="/admin/listings" class="btn-primary">Review Listings</a>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>User Management</h3>
+                    <p>Manage users and handle suspensions</p>
+                    <a href="/admin/users" class="btn-secondary">Manage Users</a>
+                </div>
+            {% endif %}
+
+            <div class="dashboard-card">
+                <h3>Messages</h3>
+                <p>View your encrypted conversations</p>
+                <a href="/conversations" class="btn-primary">View Messages</a>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Settings</h3>
+                <p>Update your profile and security settings</p>
+                <a href="/settings" class="btn-secondary">Settings</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

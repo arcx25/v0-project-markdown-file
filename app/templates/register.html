@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Register - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<section class="auth-page">
+    <div class="container">
+        <div class="auth-card">
+            <h1>Register</h1>
+            <p class="auth-subtitle">Create an account using your PGP key</p>
+            
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required pattern="[a-zA-Z0-9_-]+" minlength="3" maxlength="64">
+                    <small>Alphanumeric, dash, and underscore only</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Account Type</label>
+                    <select id="role" name="role" required>
+                        <option value="">Select your role</option>
+                        <option value="source">Whistleblower / Source</option>
+                        <option value="journalist">Journalist</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="public_key">PGP Public Key</label>
+                    <textarea id="public_key" name="public_key" rows="10" required placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"></textarea>
+                    <small>Paste your entire PGP public key block</small>
+                </div>
+
+                <div id="journalistFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="organization">Organization (Optional)</label>
+                        <input type="text" id="organization" name="organization" maxlength="255">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="position">Position (Optional)</label>
+                        <input type="text" id="position" name="position" maxlength="255">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="website">Website (Optional)</label>
+                        <input type="url" id="website" name="website" maxlength="500">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bio">Bio (Optional)</label>
+                        <textarea id="bio" name="bio" rows="4" maxlength="5000"></textarea>
+                    </div>
+                </div>
+
+                <div id="sourceFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="anonymous_alias">Anonymous Alias (Optional)</label>
+                        <input type="text" id="anonymous_alias" name="anonymous_alias" maxlength="100">
+                        <small>Public display name (leave blank for auto-generated)</small>
+                    </div>
+                </div>
+
+                <div id="challengeSection" style="display: none;">
+                    <div class="alert alert-info">
+                        <h4>Challenge Received</h4>
+                        <p>Sign the following challenge with your PGP private key:</p>
+                        <pre id="challengeText" class="challenge-box"></pre>
+                        <p>Use: <code>gpg --clearsign</code> or your PGP client</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signed_challenge">Signed Challenge</label>
+                        <textarea id="signed_challenge" name="signed_challenge" rows="15" placeholder="-----BEGIN PGP SIGNED MESSAGE-----"></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-block" id="submitBtn">Continue</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="/login">Login</a></p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    const roleSelect = document.getElementById('role');
+    const journalistFields = document.getElementById('journalistFields');
+    const sourceFields = document.getElementById('sourceFields');
+    
+    roleSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'journalist') {
+            journalistFields.style.display = 'block';
+            sourceFields.style.display = 'none';
+        } else if (e.target.value === 'source') {
+            journalistFields.style.display = 'none';
+            sourceFields.style.display = 'block';
+        } else {
+            journalistFields.style.display = 'none';
+            sourceFields.style.display = 'none';
+        }
+    });
+
+    // Registration form handling would go here
+    // This is a placeholder for the actual implementation
+</script>
+{% endblock %}

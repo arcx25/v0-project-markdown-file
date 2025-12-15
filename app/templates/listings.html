@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Support Listings - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<section class="listings-page">
+    <div class="container">
+        <div class="page-header">
+            <h1>Support Whistleblowers</h1>
+            <p>Help sources continue their important work through anonymous donations</p>
+        </div>
+
+        <div class="filters">
+            <select id="categoryFilter" class="filter-select">
+                <option value="">All Categories</option>
+                <option value="investigation">Investigation</option>
+                <option value="legal_defense">Legal Defense</option>
+                <option value="relocation">Relocation</option>
+                <option value="medical">Medical</option>
+                <option value="general_support">General Support</option>
+            </select>
+        </div>
+
+        <div id="listingsList" class="listings-grid">
+            <!-- Listings will be loaded here dynamically -->
+            <div class="listing-card">
+                <h3 class="listing-title">Support Environmental Investigation</h3>
+                <p class="listing-story">Seeking support to continue investigation into industrial pollution affecting local communities...</p>
+                <div class="listing-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 65%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span>$6,500 raised</span>
+                        <span>$10,000 goal</span>
+                    </div>
+                </div>
+                <div class="listing-footer">
+                    <span class="supporter-count">23 supporters</span>
+                    <a href="#" class="btn-primary btn-sm">Contribute</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
