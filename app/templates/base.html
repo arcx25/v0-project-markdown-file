@@ -8,18 +8,22 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Updated nav to use buyer/vendor terminology -->
     <nav class="navbar">
         <div class="container">
             <div class="nav-brand">
                 <a href="/">ARCHITECT // VAULT</a>
             </div>
             <div class="nav-menu">
-                <a href="/leads">Leads</a>
-                <a href="/listings">Support</a>
+                <a href="/marketplace">Marketplace</a>
+                <a href="/support">Support Vendors</a>
                 <a href="/about">About</a>
-                {% if user %}
+                {% if current_user %}
                     <a href="/dashboard">Dashboard</a>
-                    <a href="/logout" class="btn-secondary">Logout</a>
+                    <form method="POST" action="/logout" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn-secondary">Logout</button>
+                    </form>
                 {% else %}
                     <a href="/login" class="btn-secondary">Login</a>
                     <a href="/register" class="btn-primary">Register</a>
@@ -32,6 +36,7 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Updated footer with buyer/vendor marketplace language -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
@@ -45,7 +50,7 @@
                         <li>PGP-based authentication</li>
                         <li>End-to-end encryption</li>
                         <li>Tor hidden service</li>
-                        <li>Anonymous payments</li>
+                        <li>Anonymous Monero payments</li>
                     </ul>
                 </div>
                 <div class="footer-section">
@@ -54,12 +59,11 @@
                         <li><a href="/about">About</a></li>
                         <li><a href="/security">Security</a></li>
                         <li><a href="/faq">FAQ</a></li>
-                        <li><a href="/contact">Contact</a></li>
                     </ul>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2025 ARCHITECT // VAULT. Open source security platform.</p>
+                <p>&copy; 2025 ARCHITECT // VAULT. Secure marketplace platform.</p>
             </div>
         </div>
     </footer>

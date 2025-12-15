@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Support Vendors - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<!-- Adapted from listings/browse.html for vendor support -->
+<div class="support-browse">
+    <header class="page-header">
+        <h1>Support Vendors</h1>
+        <p class="page-subtitle">
+            Help support vendors in the marketplace. All contributions 
+            are anonymous via Monero.
+        </p>
+    </header>
+    
+    <!-- Filters -->
+    <form method="GET" action="/support" class="filters-form">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    <option value="">All Categories</option>
+                    <option value="vendor_support" {% if category == 'vendor_support' %}selected{% endif %}>
+                        Vendor Support
+                    </option>
+                    <option value="development" {% if category == 'development' %}selected{% endif %}>
+                        Development
+                    </option>
+                    <option value="services" {% if category == 'services' %}selected{% endif %}>
+                        Services
+                    </option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="sort">Sort By</label>
+                <select id="sort" name="sort">
+                    <option value="recent" {% if sort == 'recent' %}selected{% endif %}>
+                        Most Recent
+                    </option>
+                    <option value="supporters" {% if sort == 'supporters' %}selected{% endif %}>
+                        Most Supporters
+                    </option>
+                    <option value="raised" {% if sort == 'raised' %}selected{% endif %}>
+                        Most Raised
+                    </option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-secondary">
+                Apply Filters
+            </button>
+        </div>
+    </form>
+    
+    <!-- Listings Grid -->
+    {% if listings %}
+    <div class="listings-grid">
+        {% for listing in listings %}
+        <article class="listing-card">
+            <header class="listing-card-header">
+                <span class="category-badge">
+                    {{ listing.category.value | replace('_', ' ') }}
+                </span>
+                {% if listing.verified_by_admin %}
+                <span class="verified-badge" title="Verified by Admin">✓</span>
+                {% endif %}
+            </header>
+            
+            <h2 class="listing-card-title">
+                <a href="/support/{{ listing.slug }}">{{ listing.title }}</a>
+            </h2>
+            
+            <p class="listing-card-headline">{{ listing.headline | truncate(150) }}</p>
+            
+            <div class="listing-card-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ listing.progress_percent }}%"></div>
+                </div>
+                <div class="progress-text">
+                    <span>{{ listing.total_raised_xmr }} XMR raised</span>
+                    {% if listing.funding_goal_usd %}
+                    <span>{{ listing.progress_percent }}% of goal</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <footer class="listing-card-footer">
+                <span class="supporters">
+                    {{ listing.supporter_count }} supporter{{ 's' if listing.supporter_count != 1 else '' }}
+                </span>
+                <a href="/support/{{ listing.slug }}" class="btn btn-primary btn-sm">
+                    View &amp; Support
+                </a>
+            </footer>
+        </article>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <nav class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}{% if category %}&category={{ category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+           class="pagination-link">
+            &laquo; Previous
+        </a>
+        {% endif %}
+        
+        <span class="pagination-info">
+            Page {{ page }} of {{ total_pages }}
+        </span>
+        
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}{% if category %}&category={{ category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+           class="pagination-link">
+            Next &raquo;
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <h2>No listings found</h2>
+        <p>There are no active support listings matching your criteria.</p>
+        {% if category %}
+        <a href="/support" class="btn btn-secondary">Clear Filters</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

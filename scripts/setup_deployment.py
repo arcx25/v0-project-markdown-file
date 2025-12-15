@@ -6,8 +6,10 @@ Runs in IDE to configure CI/CD pipeline to Avalanche server
 
 import os
 import sys
-import subprocess
 from pathlib import Path
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.backends import default_backend
 
 def print_section(title):
     """Print a formatted section header"""
@@ -15,205 +17,131 @@ def print_section(title):
     print(f"  {title}")
     print(f"{'='*60}\n")
 
-def check_command(cmd):
-    """Check if a command exists"""
+def generate_ssh_key_instructions():
+    """Generate SSH key using pure Python"""
+    print_section("Step 1: Generate SSH Key (Pure Python)")
+    
     try:
-        subprocess.run([cmd, "--version"], capture_output=True, check=True)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+        private_key = ed25519.Ed25519PrivateKey.generate()
+        public_key = private_key.public_key()
+        
+        # Serialize private key
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.OpenSSH,
+            encryption_algorithm=serialization.NoEncryption()
+        ).decode('utf-8')
+        
+        # Serialize public key
+        public_ssh = public_key.public_bytes(
+            encoding=serialization.Encoding.OpenSSH,
+            format=serialization.PublicFormat.OpenSSH
+        ).decode('utf-8')
+        
+        # Save keys
+        key_dir = Path.home() / ".ssh"
+        key_dir.mkdir(exist_ok=True, mode=0o700)
+        
+        private_key_path = key_dir / "vault_deploy_key"
+        public_key_path = key_dir / "vault_deploy_key.pub"
+        
+        # Write private key
+        with open(private_key_path, 'w') as f:
+            f.write(private_pem)
+        private_key_path.chmod(0o600)
+        
+        # Write public key
+        with open(public_key_path, 'w') as f:
+            f.write(f"{public_ssh} vault-deploy-key\n")
+        
+        print(f"✓ SSH keys generated:")
+        print(f"  Private: {private_key_path}")
+        print(f"  Public:  {public_key_path}\n")
+        
+        return private_pem, f"{public_ssh} vault-deploy-key"
+        
+    except ImportError:
+        print("✗ cryptography library not found")
+        print("\nInstall it with:")
+        print("  pip install cryptography\n")
+        return None, None
 
-def generate_ssh_key():
-    """Generate SSH key for deployment"""
-    print_section("Step 1: Generate SSH Key")
+def display_deployment_instructions(private_key, public_key):
+    """Display step-by-step deployment instructions"""
     
-    key_path = Path.home() / ".ssh" / "vault_deploy_key"
-    
-    if key_path.exists():
-        print(f"✓ SSH key already exists at {key_path}")
-        response = input("Generate new key? (y/N): ").lower()
-        if response != 'y':
-            return key_path
-    
-    print("Generating new SSH key...")
-    try:
-        subprocess.run([
-            "ssh-keygen",
-            "-t", "ed25519",
-            "-f", str(key_path),
-            "-N", "",
-            "-C", "vault-deploy-key"
-        ], check=True)
-        print(f"✓ SSH key generated at {key_path}")
-    except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to generate SSH key: {e}")
-        return None
-    
-    return key_path
-
-def display_public_key(key_path):
-    """Display public key for copying to server"""
-    print_section("Step 2: Add Public Key to Avalanche Server")
-    
-    pub_key_path = Path(str(key_path) + ".pub")
-    
-    if not pub_key_path.exists():
-        print(f"✗ Public key not found at {pub_key_path}")
+    if not private_key or not public_key:
+        print("✗ Keys not generated. Please install cryptography library.")
         return False
     
-    with open(pub_key_path, 'r') as f:
-        public_key = f.read().strip()
-    
+    print_section("Step 2: Add Public Key to Server")
     print("Copy this public key:\n")
     print(f"  {public_key}\n")
-    print("Then run this command on your LOCAL machine (not in IDE):\n")
-    print(f"  ssh avalanche@91.98.16.255 'mkdir -p ~/.ssh && echo \"{public_key}\" >> ~/.ssh/authorized_keys'\n")
+    print("Then SSH to your server and run:\n")
+    print("  mkdir -p ~/.ssh")
+    print(f"  echo '{public_key}' >> ~/.ssh/authorized_keys")
+    print("  chmod 600 ~/.ssh/authorized_keys\n")
     
-    input("Press Enter after you've added the key to the server...")
-    return True
-
-def display_private_key(key_path):
-    """Display private key for GitHub Secrets"""
-    print_section("Step 3: Add Private Key to GitHub Secrets")
+    input("Press Enter after adding the key to your server...")
     
-    if not key_path.exists():
-        print(f"✗ Private key not found at {key_path}")
-        return False
-    
-    with open(key_path, 'r') as f:
-        private_key = f.read()
-    
-    print("Copy this ENTIRE private key (including BEGIN/END lines):\n")
+    print_section("Step 3: Add to GitHub Secrets")
+    print("Go to: GitHub Repository → Settings → Secrets → Actions\n")
+    print("Add these secrets:\n")
     print("─" * 60)
+    print("Name: SSH_PRIVATE_KEY")
+    print("Value:")
     print(private_key)
     print("─" * 60)
-    print("\nGo to your GitHub repository:")
-    print("  Settings → Secrets and variables → Actions → New repository secret\n")
-    print("Add these secrets:")
-    print("  Name: SSH_PRIVATE_KEY")
-    print("  Value: [Paste the private key above]\n")
-    print("  Name: SERVER_HOST")
-    print("  Value: 91.98.16.255\n")
-    print("  Name: SERVER_USER")
-    print("  Value: avalanche\n")
-    print("  Name: SERVER_PORT")
-    print("  Value: 22\n")
+    print("\nName: SERVER_HOST")
+    print("Value: 91.98.16.255\n")
+    print("Name: SERVER_USER")
+    print("Value: avalanche\n")
+    print("Name: SERVER_PORT")
+    print("Value: 22\n")
     
-    input("Press Enter after you've added the GitHub secrets...")
-    return True
-
-def create_github_workflow():
-    """Create GitHub Actions workflow"""
-    print_section("Step 4: Create GitHub Workflow")
+    input("Press Enter after adding GitHub secrets...")
     
-    workflow_dir = Path(".github/workflows")
-    workflow_dir.mkdir(parents=True, exist_ok=True)
+    print_section("Step 4: Deploy!")
+    print("Method 1 - Automatic (GitHub Actions):")
+    print("  git add .")
+    print("  git commit -m 'Deploy ARCHITECT // VAULT'")
+    print("  git push origin main\n")
     
-    workflow_file = workflow_dir / "deploy.yml"
-    
-    if workflow_file.exists():
-        print(f"✓ GitHub workflow already exists at {workflow_file}")
-    else:
-        print(f"✓ GitHub workflow created at {workflow_file}")
-    
-    print("\nWorkflow will trigger on:")
-    print("  - Push to main branch")
-    print("  - Manual workflow dispatch")
-    
-    return True
-
-def setup_vercel():
-    """Guide through Vercel setup"""
-    print_section("Step 5: Setup Vercel (Optional)")
-    
-    print("To deploy the frontend dashboard to Vercel:\n")
-    print("1. Install Vercel CLI on your local machine:")
-    print("   npm i -g vercel\n")
-    print("2. Navigate to frontend directory:")
-    print("   cd frontend\n")
-    print("3. Deploy to Vercel:")
-    print("   vercel --prod\n")
-    print("4. Follow the prompts to link your project\n")
-    
-    response = input("Skip Vercel setup? (Y/n): ").lower()
-    return response != 'n'
-
-def test_deployment():
-    """Guide through testing deployment"""
-    print_section("Step 6: Test Deployment")
-    
-    print("To test the deployment:\n")
-    print("1. Commit your changes:")
-    print("   git add .")
-    print("   git commit -m 'Setup deployment pipeline'\n")
-    print("2. Push to trigger deployment:")
-    print("   git push origin main\n")
-    print("3. Watch the deployment:")
-    print("   Go to GitHub → Actions tab\n")
-    print("4. Check your server:")
-    print("   ssh avalanche@91.98.16.255")
-    print("   sudo systemctl status vault-web\n")
+    print("Method 2 - Manual (Run from IDE):")
+    print("  python3 scripts/deploy_manual.py\n")
     
     return True
 
 def main():
     """Main setup process"""
     print("\n" + "="*60)
-    print("  ARCHITECT // VAULT - Deployment Setup")
+    print("  ARCHITECT // VAULT - Pure Python Deployment Setup")
     print("="*60)
+    print("\nThis script runs entirely in Python - no system tools needed!\n")
     
-    print("\nThis script will help you setup automated deployment")
-    print("from Vercel/GitHub to your Avalanche server.\n")
+    private_key, public_key = generate_ssh_key_instructions()
     
-    # Check prerequisites
-    print("Checking prerequisites...")
-    if not check_command("ssh-keygen"):
-        print("✗ ssh-keygen not found. Please install OpenSSH.")
+    if private_key and public_key:
+        display_deployment_instructions(private_key, public_key)
+        
+        print_section("Setup Complete!")
+        print("✓ SSH keys generated")
+        print("✓ Instructions displayed")
+        print("\nYou can now deploy using:")
+        print("  1. GitHub Actions (automatic)")
+        print("  2. python3 scripts/deploy_manual.py (manual)\n")
+    else:
+        print("\n✗ Setup incomplete. Install dependencies:")
+        print("  pip install cryptography paramiko\n")
         sys.exit(1)
-    if not check_command("git"):
-        print("✗ git not found. Please install Git.")
-        sys.exit(1)
-    print("✓ Prerequisites satisfied\n")
-    
-    # Run setup steps
-    key_path = generate_ssh_key()
-    if not key_path:
-        print("\n✗ Setup failed at SSH key generation")
-        sys.exit(1)
-    
-    if not display_public_key(key_path):
-        print("\n✗ Setup failed at public key display")
-        sys.exit(1)
-    
-    if not display_private_key(key_path):
-        print("\n✗ Setup failed at private key display")
-        sys.exit(1)
-    
-    if not create_github_workflow():
-        print("\n✗ Setup failed at workflow creation")
-        sys.exit(1)
-    
-    setup_vercel()
-    test_deployment()
-    
-    # Final summary
-    print_section("Setup Complete!")
-    print("✓ SSH keys generated")
-    print("✓ GitHub workflow configured")
-    print("✓ Ready to deploy\n")
-    print("Next steps:")
-    print("1. Verify SSH key is on server: ssh avalanche@91.98.16.255")
-    print("2. Verify GitHub secrets are set")
-    print("3. Push to main branch to trigger deployment")
-    print("\nFor manual deployment, run:")
-    print("  bash deploy/avalanche/deploy_to_avalanche.sh\n")
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nSetup cancelled by user")
+        print("\n\nSetup cancelled")
         sys.exit(0)
     except Exception as e:
         print(f"\n✗ Error: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)

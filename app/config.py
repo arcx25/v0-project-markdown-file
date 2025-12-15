@@ -104,6 +104,11 @@ class Settings(BaseSettings):
     # Admin
     INITIAL_ADMIN_USERNAME: str = Field(default="admin")
     INITIAL_ADMIN_PGP_KEY: Optional[str] = Field(default=None)
+    
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production environment."""
+        return self.ENVIRONMENT.lower() == "production"
 
 
 @lru_cache()

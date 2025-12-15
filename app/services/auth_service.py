@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
-from app.models.user import User, JournalistProfile, SourceProfile, AuthChallenge, Session, UserRole, VerificationStatus
+from app.models.user import User, JournalistProfile, SourceProfile, AuthChallenge, Session, UserRole, VerificationStatus, VendorProfile, BuyerProfile
 from app.services.pgp_service import PGPService
 from app.config import get_settings
 
@@ -141,7 +141,7 @@ class AuthService:
         challenge.used = True
         
         # Create user
-        role_enum = UserRole.SOURCE if profile_data.get('role') == 'source' else UserRole.JOURNALIST
+        role_enum = UserRole.VENDOR if profile_data.get('role') == 'vendor' else UserRole.BUYER
         
         # Re-import key to get fingerprint
         _, fingerprint, _ = self.pgp.import_public_key(profile_data['public_key'])
@@ -158,8 +158,8 @@ class AuthService:
         await db.flush()
         
         # Create role-specific profile
-        if role_enum == UserRole.JOURNALIST:
-            journalist_profile = JournalistProfile(
+        if role_enum == UserRole.VENDOR:
+            vendor_profile = VendorProfile(
                 user_id=user.id,
                 organization=profile_data.get('organization'),
                 position=profile_data.get('position'),
@@ -168,13 +168,13 @@ class AuthService:
                 verification_status=VerificationStatus.PENDING,
                 subscription_tier='free'
             )
-            db.add(journalist_profile)
+            db.add(vendor_profile)
         else:
-            source_profile = SourceProfile(
+            buyer_profile = BuyerProfile(
                 user_id=user.id,
-                anonymous_alias=profile_data.get('anonymous_alias') or f"Source_{user.id}"
+                anonymous_alias=profile_data.get('anonymous_alias') or f"Buyer_{user.id}"
             )
-            db.add(source_profile)
+            db.add(buyer_profile)
         
         # Create session
         session_token = self._generate_session_token()

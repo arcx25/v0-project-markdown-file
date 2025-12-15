@@ -4,32 +4,58 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+import logging
 
 from app.config import get_settings
 from app.database import init_db
+from app.dependencies import get_redis
 from app.api.router import api_router
 from app.web.routes import router as web_router
+from app.middleware.rate_limiter import RateLimitMiddleware
+from app.middleware.security import SecurityHeadersMiddleware, TorCircuitMiddleware
 
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
+    logger.info(f"Starting {settings.APP_NAME}")
     await init_db()
+    logger.info("Database initialized")
+    
+    # Initialize Redis
+    redis = await get_redis()
+    logger.info("Redis connected")
+    
     yield
+    
     # Shutdown
-    pass
+    logger.info("Shutting down...")
+    await redis.close()
 
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     debug=settings.DEBUG,
+    docs_url=None if settings.is_production else "/docs",
+    redoc_url=None,
+    openapi_url=None if settings.is_production else "/openapi.json",
     lifespan=lifespan
 )
+
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(TorCircuitMiddleware)
+
+# Add rate limiting middleware with Redis
+@app.on_event("startup")
+async def add_rate_limiting():
+    redis = await get_redis()
+    app.add_middleware(RateLimitMiddleware, redis=redis)
 
 # CORS middleware
 app.add_middleware(

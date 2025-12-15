@@ -12,7 +12,7 @@ from app.services.pgp_service import PGPService
 
 
 class MessageService:
-    """Service for end-to-end encrypted messaging."""
+    """Service for end-to-end encrypted messaging between buyers and vendors."""
     
     def __init__(self, pgp_service: PGPService):
         self.pgp = pgp_service
@@ -39,8 +39,8 @@ class MessageService:
             select(Conversation)
             .where(
                 or_(
-                    Conversation.source_id == user_id,
-                    Conversation.journalist_id == user_id
+                    Conversation.buyer_id == user_id,
+                    Conversation.vendor_id == user_id
                 )
             )
             .order_by(Conversation.last_message_at.desc())
@@ -68,14 +68,14 @@ class MessageService:
             return False, None, "Conversation is closed"
         
         # Verify sender is part of conversation
-        if sender_id not in [conversation.source_id, conversation.journalist_id]:
+        if sender_id not in [conversation.buyer_id, conversation.vendor_id]:
             return False, None, "You are not part of this conversation"
         
         # Determine recipient
         recipient_id = (
-            conversation.journalist_id 
-            if sender_id == conversation.source_id 
-            else conversation.source_id
+            conversation.vendor_id 
+            if sender_id == conversation.buyer_id 
+            else conversation.buyer_id
         )
         
         # Get recipient's public key
@@ -128,7 +128,7 @@ class MessageService:
         if not conversation:
             return False, [], "Conversation not found"
         
-        if user_id not in [conversation.source_id, conversation.journalist_id]:
+        if user_id not in [conversation.buyer_id, conversation.vendor_id]:
             return False, [], "You are not part of this conversation"
         
         # Get messages
@@ -179,7 +179,7 @@ class MessageService:
         if message.sender_id == user_id:
             return False
         
-        if user_id not in [conversation.source_id, conversation.journalist_id]:
+        if user_id not in [conversation.buyer_id, conversation.vendor_id]:
             return False
         
         message.read_at = datetime.now(timezone.utc)

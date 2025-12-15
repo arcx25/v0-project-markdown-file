@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Marketplace - ARCHITECT // VAULT{% endblock %}
+
+{% block content %}
+<!-- Adapted from leads/browse.html, changed to buyer/vendor terminology -->
+<div class="marketplace-browse">
+    <header class="page-header">
+        <h1>Marketplace</h1>
+        <p class="page-subtitle">
+            Browse opportunities from buyers seeking vendor partnerships.
+            Express interest to connect with buyers.
+        </p>
+    </header>
+    
+    {% if not current_user %}
+    <div class="alert alert-info">
+        <p>
+            <a href="/login">Log in</a> or <a href="/register">register</a> 
+            as a vendor to express interest in opportunities.
+        </p>
+    </div>
+    {% elif current_user.role.value == 'buyer' %}
+    <div class="alert alert-info">
+        <p>
+            You're viewing as a buyer. 
+            <a href="/dashboard">Go to your dashboard</a> to manage your own opportunities.
+        </p>
+    </div>
+    {% endif %}
+    
+    <!-- Filters -->
+    <form method="GET" action="/marketplace" class="filters-form">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    <option value="">All Categories</option>
+                    <option value="services" {% if category == 'services' %}selected{% endif %}>Services</option>
+                    <option value="products" {% if category == 'products' %}selected{% endif %}>Products</option>
+                    <option value="consulting" {% if category == 'consulting' %}selected{% endif %}>Consulting</option>
+                    <option value="development" {% if category == 'development' %}selected{% endif %}>Development</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-secondary">
+                Apply Filters
+            </button>
+        </div>
+    </form>
+    
+    {% if interest_limit_message %}
+    <div class="alert alert-warning">
+        <p>{{ interest_limit_message }}</p>
+        {% if current_user and current_user.vendor_profile.subscription_tier == 'free' %}
+        <p><a href="/dashboard#subscription">Upgrade your subscription</a> for unlimited interests.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Opportunities List -->
+    {% if leads %}
+    <div class="opportunities-list">
+        {% for lead in leads %}
+        <article class="opportunity-card">
+            <header class="opportunity-header">
+                <div class="opportunity-meta">
+                    <span class="category-badge">
+                        {{ lead.category.value | replace('_', ' ') }}
+                    </span>
+                </div>
+                <time class="opportunity-date" datetime="{{ lead.submitted_at }}">
+                    {{ lead.submitted_at | format_date }}
+                </time>
+            </header>
+            
+            <h2 class="opportunity-title">{{ lead.title }}</h2>
+            
+            <p class="opportunity-summary">{{ lead.summary | truncate(300) }}</p>
+            
+            <footer class="opportunity-footer">
+                <a href="/marketplace/{{ lead.id }}" class="btn btn-secondary btn-sm">
+                    View Details
+                </a>
+                
+                {% if can_express_interest %}
+                <form method="POST" action="/marketplace/{{ lead.id }}/interest" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        Express Interest
+                    </button>
+                </form>
+                {% endif %}
+            </footer>
+        </article>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <nav class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}{% if category %}&category={{ category }}{% endif %}" 
+           class="pagination-link">
+            &laquo; Previous
+        </a>
+        {% endif %}
+        
+        <span class="pagination-info">
+            Page {{ page }} of {{ total_pages }} ({{ total }} opportunities)
+        </span>
+        
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}{% if category %}&category={{ category }}{% endif %}" 
+           class="pagination-link">
+            Next &raquo;
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <h2>No opportunities available</h2>
+        <p>There are no published opportunities matching your criteria at this time.</p>
+        {% if category %}
+        <a href="/marketplace" class="btn btn-secondary">Clear Filters</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
