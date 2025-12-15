@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": null,
+  "installCommand": "cd frontend && npm install",
+  "env": {
+    "AVALANCHE_SERVER": "91.98.16.255",
+    "AVALANCHE_USER": "avalanche"
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true
+  }
+}

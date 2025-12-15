@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARCHITECT // VAULT - Deployment Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0a0a0a;
+      color: #00ff00;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      border-bottom: 2px solid #00ff00;
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+    }
+    .status-card {
+      background: #1a1a1a;
+      border: 1px solid #00ff00;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .online { background: #00ff00; }
+    .offline { background: #ff0000; }
+    a {
+      color: #00ff00;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ARCHITECT // VAULT</h1>
+    
+    <div class="status-card">
+      <h2><span class="status-indicator online"></span>Deployment Status</h2>
+      <p>Backend Server: <strong>91.98.16.255</strong></p>
+      <p>Last Deploy: <span id="lastDeploy">Loading...</span></p>
+      <p>Version: <span id="version">1.0.0</span></p>
+    </div>
+    
+    <div class="status-card">
+      <h2>Quick Links</h2>
+      <p>→ <a href="http://91.98.16.255:8000/docs" target="_blank">API Documentation</a></p>
+      <p>→ <a href="http://91.98.16.255:8000/health" target="_blank">Health Check</a></p>
+      <p>→ <a href="https://github.com/YOUR_REPO/actions" target="_blank">GitHub Actions</a></p>
+    </div>
+    
+    <div class="status-card">
+      <h2>Deployment Instructions</h2>
+      <pre>
+# Push to GitHub to trigger deployment:
+git add .
+git commit -m "Deploy updates"
+git push origin main
+
+# Check deployment status in GitHub Actions
+# Vercel will automatically trigger the workflow
+      </pre>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('lastDeploy').textContent = new Date().toLocaleString();
+  </script>
+</body>
+</html>
