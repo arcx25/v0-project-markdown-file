@@ -3,96 +3,119 @@
 {% block title %}Dashboard - ARCHITECT // VAULT{% endblock %}
 
 {% block content %}
-<section class="dashboard">
-    <div class="container">
-        <div class="dashboard-header">
-            <h1>Dashboard</h1>
-            <p>Welcome back, {{ user.username }}</p>
+<div class="dashboard-container">
+    <!-- Updated dashboard sidebar with buyer/vendor roles -->
+    <aside class="dashboard-sidebar">
+        <div class="user-info">
+            <span class="username">{{ user.username }}</span>
+            <span class="role-badge">{{ user.role.value | title }}</span>
         </div>
-
-        <div class="dashboard-grid">
-            {% if user.role.value == 'source' %}
-                <div class="dashboard-card">
-                    <h3>My Leads</h3>
-                    <p>Manage your submitted leads and review journalist interest</p>
-                    <a href="/leads/my-leads" class="btn-primary">View Leads</a>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>Create Lead</h3>
-                    <p>Submit a new lead to connect with journalists</p>
-                    <a href="/leads/create" class="btn-secondary">Create Lead</a>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>My Listings</h3>
-                    <p>Manage your support listings and view contributions</p>
-                    <a href="/listings/my-listings" class="btn-primary">View Listings</a>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>Create Listing</h3>
-                    <p>Create a new support listing for your cause</p>
-                    <a href="/listings/create" class="btn-secondary">Create Listing</a>
-                </div>
-
-            {% elif user.role.value == 'journalist' %}
-                <div class="dashboard-card">
-                    <h3>Browse Leads</h3>
-                    <p>Explore active leads and express your interest</p>
-                    <a href="/leads" class="btn-primary">Browse Leads</a>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>My Interests</h3>
-                    <p>Track leads you've expressed interest in</p>
-                    <a href="/leads/interests" class="btn-secondary">View Interests</a>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>Subscription</h3>
-                    <p>Manage your subscription tier and benefits</p>
-                    <a href="/subscription" class="btn-primary">View Subscription</a>
-                </div>
-
+        
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="sidebar-link active">
+                Dashboard
+            </a>
+            
+            {% if user.role.value == 'buyer' %}
+            <a href="/dashboard/opportunities" class="sidebar-link">
+                My Opportunities
+            </a>
+            <a href="/marketplace" class="sidebar-link">
+                Browse Vendors
+            </a>
+            {% elif user.role.value == 'vendor' %}
+            <a href="/dashboard/interests" class="sidebar-link">
+                My Interests
+            </a>
+            <a href="/marketplace" class="sidebar-link">
+                Browse Opportunities
+            </a>
+            <a href="/dashboard/subscription" class="sidebar-link">
+                Subscription
+            </a>
             {% elif user.role.value == 'admin' %}
-                <div class="dashboard-card">
-                    <h3>Pending Leads</h3>
-                    <p>Review and approve submitted leads</p>
-                    <a href="/admin/leads" class="btn-primary">Review Leads</a>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>Journalist Verification</h3>
-                    <p>Verify journalist credentials</p>
-                    <a href="/admin/journalists" class="btn-primary">Verify Journalists</a>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>Pending Listings</h3>
-                    <p>Review and approve support listings</p>
-                    <a href="/admin/listings" class="btn-primary">Review Listings</a>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>User Management</h3>
-                    <p>Manage users and handle suspensions</p>
-                    <a href="/admin/users" class="btn-secondary">Manage Users</a>
-                </div>
+            <a href="/admin" class="sidebar-link">
+                Admin Panel
+            </a>
             {% endif %}
-
-            <div class="dashboard-card">
-                <h3>Messages</h3>
-                <p>View your encrypted conversations</p>
-                <a href="/conversations" class="btn-primary">View Messages</a>
+            
+            <a href="/dashboard/listings" class="sidebar-link">
+                Support Listings
+            </a>
+            <a href="/dashboard/messages" class="sidebar-link">
+                Messages
+            </a>
+            <a href="/dashboard/settings" class="sidebar-link">
+                Settings
+            </a>
+            
+            <form method="POST" action="/api/auth/logout" class="logout-link">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="sidebar-link" style="width: 100%; text-align: left;">
+                    Logout
+                </button>
+            </form>
+        </nav>
+    </aside>
+    
+    <main class="dashboard-main">
+        <header class="page-header">
+            <h1>Dashboard</h1>
+            <p class="text-muted">Welcome back, {{ user.username }}</p>
+        </header>
+        
+        <!-- Stats grid adapted for buyer/vendor marketplace -->
+        <div class="stats-grid">
+            {% if user.role.value == 'buyer' %}
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.active_opportunities or 0 }}</span>
+                <span class="stat-label">Active Opportunities</span>
             </div>
-
-            <div class="dashboard-card">
-                <h3>Settings</h3>
-                <p>Update your profile and security settings</p>
-                <a href="/settings" class="btn-secondary">Settings</a>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.vendor_interests or 0 }}</span>
+                <span class="stat-label">Vendor Interests</span>
             </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.active_conversations or 0 }}</span>
+                <span class="stat-label">Conversations</span>
+            </div>
+            {% elif user.role.value == 'vendor' %}
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.interests_submitted or 0 }}</span>
+                <span class="stat-label">Interests Submitted</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.interests_accepted or 0 }}</span>
+                <span class="stat-label">Accepted</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.active_conversations or 0 }}</span>
+                <span class="stat-label">Conversations</span>
+            </div>
+            {% endif %}
         </div>
-    </div>
-</section>
+        
+        <!-- Role-specific content -->
+        {% if user.role.value == 'buyer' %}
+            {% include "dashboard/_buyer_opportunities.html" %}
+        {% elif user.role.value == 'vendor' %}
+            {% include "dashboard/_vendor_interests.html" %}
+        {% elif user.role.value == 'admin' %}
+            <div class="admin-quick-links">
+                <a href="/admin/leads" class="card">
+                    <h3>Review Opportunities</h3>
+                    <p>{{ stats.pending_leads or 0 }} pending</p>
+                </a>
+                <a href="/admin/vendors" class="card">
+                    <h3>Verify Vendors</h3>
+                    <p>{{ stats.pending_vendors or 0 }} pending</p>
+                </a>
+                <a href="/admin/listings" class="card">
+                    <h3>Review Listings</h3>
+                    <p>{{ stats.pending_listings or 0 }} pending</p>
+                </a>
+            </div>
+        {% endif %}
+    </main>
+</div>
 {% endblock %}

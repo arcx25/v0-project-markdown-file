@@ -1,0 +1,88 @@
+<header class="section-header">
+    <h2>My Interests</h2>
+    <p class="text-muted">Opportunities you've expressed interest in</p>
+</header>
+
+<!-- Adapted from journalist interests to vendor interests -->
+<div class="tabs">
+    <a href="?tab=pending" class="tab {% if tab == 'pending' %}active{% endif %}">Pending ({{ counts.pending }})</a>
+    <a href="?tab=accepted" class="tab {% if tab == 'accepted' %}active{% endif %}">Accepted ({{ counts.accepted }})</a>
+    <a href="?tab=rejected" class="tab {% if tab == 'rejected' %}active{% endif %}">Rejected ({{ counts.rejected }})</a>
+</div>
+
+{% if interests %}
+<div class="interests-list">
+    {% for interest in interests %}
+    <article class="interest-card dashboard-card">
+        <header class="interest-card-header">
+            <span class="status-badge status-{{ interest.status.value }}">{{ interest.status.value | title }}</span>
+            <time datetime="{{ interest.created_at }}">Submitted {{ interest.created_at | format_relative }}</time>
+        </header>
+        
+        <h3>{{ interest.opportunity.title }}</h3>
+        
+        <div class="interest-opportunity-meta">
+            <span class="category">{{ interest.opportunity.category.value | replace('_', ' ') | title }}</span>
+            {% if interest.opportunity.time_sensitivity %}
+            <span class="urgency">{{ interest.opportunity.time_sensitivity | title }}</span>
+            {% endif %}
+        </div>
+        
+        <details class="interest-pitch">
+            <summary>Your Pitch</summary>
+            <p>{{ interest.pitch }}</p>
+        </details>
+        
+        <footer class="interest-card-footer">
+            {% if interest.status.value == 'pending' %}
+            <span class="text-muted">Waiting for buyer response...</span>
+            <form method="POST" action="/dashboard/interests/{{ interest.id }}/withdraw" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-secondary btn-sm">Withdraw Interest</button>
+            </form>
+            {% elif interest.status.value == 'accepted' %}
+            <p class="text-success">✓ Buyer accepted your interest!</p>
+            <a href="/dashboard/messages/{{ interest.conversation_id }}" class="btn btn-primary btn-sm">Open Conversation</a>
+            {% elif interest.status.value == 'rejected' %}
+            <p class="text-muted">The buyer chose another vendor.</p>
+            {% endif %}
+        </footer>
+    </article>
+    {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<nav class="pagination">
+    {% if page > 1 %}<a href="?tab={{ tab }}&page={{ page - 1 }}">&laquo; Previous</a>{% endif %}
+    <span>Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}<a href="?tab={{ tab }}&page={{ page + 1 }}">Next &raquo;</a>{% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    {% if tab == 'pending' %}
+    <h3>No pending interests</h3>
+    <p>Express interest in opportunities to connect with buyers.</p>
+    <a href="/marketplace" class="btn btn-primary">Browse Marketplace</a>
+    {% elif tab == 'accepted' %}
+    <h3>No accepted interests yet</h3>
+    <p>Keep submitting thoughtful pitches!</p>
+    {% else %}
+    <h3>No rejected interests</h3>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="interest-limits card">
+    <h4>Interest Limits</h4>
+    {% if subscription_tier == 'free' %}
+    <p><strong>{{ interests_this_month }}/5</strong> interests used this month</p>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ (interests_this_month / 5 * 100) | int }}%"></div>
+    </div>
+    <p class="text-muted"><a href="/dashboard/subscription">Upgrade</a> for unlimited interests.</p>
+    {% else %}
+    <p class="text-success">✓ Unlimited interests with {{ subscription_tier | title }} plan</p>
+    {% endif %}
+</div>

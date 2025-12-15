@@ -1,0 +1,89 @@
+<header class="section-header">
+    <h2>My Opportunities</h2>
+    <a href="/dashboard/opportunities/new" class="btn btn-primary">+ New Opportunity</a>
+</header>
+
+<!-- Adapted from whistleblower leads to buyer opportunities -->
+<form method="GET" action="/dashboard/opportunities" class="filters-form">
+    <div class="filters-row">
+        <div class="filter-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="">All Statuses</option>
+                <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>Pending Review</option>
+                <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Published</option>
+                <option value="matched" {% if status_filter == 'matched' %}selected{% endif %}>Matched</option>
+                <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary">Filter</button>
+    </div>
+</form>
+
+{% if opportunities %}
+<div class="opportunities-list">
+    {% for opp in opportunities %}
+    <article class="opportunity-card dashboard-card">
+        <header class="opportunity-card-header">
+            <span class="status-badge status-{{ opp.status.value }}">
+                {{ opp.status.value | replace('_', ' ') | title }}
+            </span>
+            <time datetime="{{ opp.created_at }}">{{ opp.created_at | format_date }}</time>
+        </header>
+        
+        <h3><a href="/dashboard/opportunities/{{ opp.id }}">{{ opp.title }}</a></h3>
+        <p class="opportunity-summary">{{ opp.summary | truncate(200) }}</p>
+        
+        <div class="opportunity-meta">
+            <span class="category">{{ opp.category.value | replace('_', ' ') | title }}</span>
+            {% if opp.time_sensitivity %}
+            <span class="urgency urgency-{{ opp.time_sensitivity }}">{{ opp.time_sensitivity | title }}</span>
+            {% endif %}
+        </div>
+        
+        <footer class="opportunity-card-footer">
+            {% if opp.status.value == 'draft' %}
+            <a href="/dashboard/opportunities/{{ opp.id }}/edit" class="btn btn-secondary btn-sm">Edit</a>
+            <form method="POST" action="/dashboard/opportunities/{{ opp.id }}/submit" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-primary btn-sm">Submit for Review</button>
+            </form>
+            {% elif opp.status.value == 'submitted' %}
+            <span class="text-muted">Awaiting admin review...</span>
+            {% elif opp.status.value == 'published' %}
+            {% if opp.interest_count > 0 %}
+            <a href="/dashboard/opportunities/{{ opp.id }}/interests" class="btn btn-primary btn-sm">
+                View {{ opp.interest_count }} Vendor{{ 's' if opp.interest_count != 1 else '' }}
+            </a>
+            {% else %}
+            <span class="text-muted">No vendor interests yet</span>
+            {% endif %}
+            {% elif opp.status.value == 'matched' %}
+            <a href="/dashboard/messages/{{ opp.conversation_id }}" class="btn btn-primary btn-sm">View Conversation</a>
+            {% endif %}
+        </footer>
+    </article>
+    {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<nav class="pagination">
+    {% if page > 1 %}
+    <a href="?page={{ page - 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}">&laquo; Previous</a>
+    {% endif %}
+    <span>Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="?page={{ page + 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next &raquo;</a>
+    {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <h3>No opportunities yet</h3>
+    <p>Create your first opportunity to connect with vendors.</p>
+    <a href="/dashboard/opportunities/new" class="btn btn-primary">Create Opportunity</a>
+</div>
+{% endif %}

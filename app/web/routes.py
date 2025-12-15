@@ -152,3 +152,72 @@ async def listings(request: Request):
 async def about(request: Request):
     """About page."""
     return templates.TemplateResponse("about.html", get_template_context(request))
+
+
+# Marketplace routes
+@router.get("/marketplace", response_class=HTMLResponse)
+async def marketplace(
+    request: Request,
+    category: Optional[str] = None,
+    page: int = 1,
+    db: AsyncSession = Depends(get_db),
+):
+    """Browse marketplace opportunities."""
+    page_size = 20
+    query = select(Lead).where(Lead.status == LeadStatus.PUBLISHED)
+    
+    if category:
+        query = query.where(Lead.category == category)
+    
+    query = query.order_by(Lead.created_at.desc())
+    
+    total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar() or 0
+    
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    opportunities = result.scalars().all()
+    
+    return templates.TemplateResponse(
+        "marketplace/browse.html",
+        get_template_context(
+            request,
+            opportunities=opportunities,
+            category_filter=category,
+            page=page,
+            total_pages=(total + page_size - 1) // page_size,
+        )
+    )
+
+
+@router.get("/support", response_class=HTMLResponse)
+async def support_listings(
+    request: Request,
+    category: Optional[str] = None,
+    page: int = 1,
+    db: AsyncSession = Depends(get_db),
+):
+    """Browse vendor support listings."""
+    page_size = 20
+    query = select(SupportListing).where(SupportListing.status == ListingStatus.ACTIVE)
+    
+    if category:
+        query = query.where(SupportListing.category == category)
+    
+    query = query.order_by(SupportListing.created_at.desc())
+    
+    total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar() or 0
+    
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    listings = result.scalars().all()
+    
+    return templates.TemplateResponse(
+        "support/browse.html",
+        get_template_context(
+            request,
+            listings=listings,
+            category_filter=category,
+            page=page,
+            total_pages=(total + page_size - 1) // page_size,
+        )
+    )
