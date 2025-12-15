@@ -74,3 +74,35 @@ gnupg/
 
 # Uploads
 uploads/
+
+# Frontend frameworks (BLOCKED - Pure Python Backend Only)
+node_modules/
+.next/
+.vercel/
+*.tsx
+*.jsx
+*.ts
+!*.py
+*.js
+!app/static/js/*.js
+next.config.*
+package.json
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+tsconfig.json
+components.json
+postcss.config.*
+
+# Frontend directories (BLOCKED)
+components/
+hooks/
+lib/
+public/
+frontend/
+app/layout.tsx
+app/globals.css
+app/page.tsx
+
+# Only allow Python backend files
+# Whitelist pattern: *.py, *.html, *.css (in static/), *.md, *.sh, *.yml, *.ini, *.conf
