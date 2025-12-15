@@ -17,7 +17,6 @@ class UserProfile(UserBase):
     created_at: datetime
     is_active: bool
     
-    # Journalist fields
     organization: Optional[str] = None
     position: Optional[str] = None
     website: Optional[str] = None
@@ -25,7 +24,6 @@ class UserProfile(UserBase):
     verification_status: Optional[str] = None
     subscription_tier: Optional[str] = None
     
-    # Source fields
     anonymous_alias: Optional[str] = None
     trust_score: Optional[int] = None
     

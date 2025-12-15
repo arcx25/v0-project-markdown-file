@@ -53,7 +53,7 @@ class ListingUpdate(BaseModel):
 class ListingResponse(BaseModel):
     """Support listing response."""
     id: int
-    source_id: int
+    buyer_id: int
     title: str
     slug: str
     category: str

@@ -1,0 +1,27 @@
+# Prometheus configuration for ARCHITECT // VAULT
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # FastAPI application metrics
+  - job_name: 'vault_api'
+    static_configs:
+      - targets: ['web:8000']
+    metrics_path: '/metrics'
+  
+  # Redis metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis_exporter:9121']
+  
+  # PostgreSQL metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+  
+  # Celery worker metrics
+  - job_name: 'celery'
+    static_configs:
+      - targets: ['worker:9808']

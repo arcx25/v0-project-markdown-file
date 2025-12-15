@@ -12,7 +12,7 @@ class LeadCreate(BaseModel):
     scope: str
     summary: str = Field(..., min_length=50, max_length=5000)
     evidence_types: List[str] = Field(default_factory=list)
-    preferred_journalist_qualities: Optional[str] = Field(None, max_length=2000)
+    preferred_vendor_qualities: Optional[str] = Field(None, max_length=2000)
 
 
 class LeadUpdate(BaseModel):
@@ -22,19 +22,19 @@ class LeadUpdate(BaseModel):
     scope: Optional[str] = None
     summary: Optional[str] = Field(None, min_length=50, max_length=5000)
     evidence_types: Optional[List[str]] = None
-    preferred_journalist_qualities: Optional[str] = Field(None, max_length=2000)
+    preferred_vendor_qualities: Optional[str] = Field(None, max_length=2000)
 
 
 class LeadResponse(BaseModel):
     """Lead response."""
     id: int
-    source_id: int
+    buyer_id: int
     title: str
     category: str
     scope: str
     summary: str
     evidence_types: Optional[List[str]]
-    preferred_journalist_qualities: Optional[str]
+    preferred_vendor_qualities: Optional[str]
     status: str
     created_at: datetime
     updated_at: datetime
@@ -61,9 +61,9 @@ class LeadInterestResponse(BaseModel):
     """Lead interest response."""
     id: int
     lead_id: int
-    journalist_id: int
-    journalist_username: str
-    journalist_organization: Optional[str]
+    vendor_id: int
+    vendor_username: str
+    vendor_organization: Optional[str]
     pitch: str
     status: str
     created_at: datetime
@@ -72,6 +72,6 @@ class LeadInterestResponse(BaseModel):
         from_attributes = True
 
 
-class AcceptJournalistRequest(BaseModel):
-    """Accept a journalist's interest."""
-    journalist_id: int
+class AcceptVendorRequest(BaseModel):
+    """Accept a vendor's interest."""
+    vendor_id: int

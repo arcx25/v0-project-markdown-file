@@ -8,8 +8,8 @@ from datetime import datetime
 class PendingLeadResponse(BaseModel):
     """Pending lead for review."""
     id: int
-    source_id: int
-    source_username: str
+    buyer_id: int
+    buyer_username: str
     title: str
     category: str
     scope: str
@@ -30,8 +30,8 @@ class RejectLeadRequest(BaseModel):
     reason: str = Field(..., min_length=10, max_length=1000)
 
 
-class PendingJournalistResponse(BaseModel):
-    """Pending journalist verification."""
+class PendingVendorResponse(BaseModel):
+    """Pending vendor verification."""
     id: int
     user_id: int
     username: str
@@ -45,16 +45,16 @@ class PendingJournalistResponse(BaseModel):
         from_attributes = True
 
 
-class VerifyJournalistRequest(BaseModel):
-    """Verify a journalist."""
+class VerifyVendorRequest(BaseModel):
+    """Verify a vendor."""
     notes: Optional[str] = Field(None, max_length=1000)
 
 
 class PendingListingResponse(BaseModel):
     """Pending listing for review."""
     id: int
-    source_id: int
-    source_username: str
+    buyer_id: int
+    buyer_username: str
     title: str
     slug: str
     category: str
