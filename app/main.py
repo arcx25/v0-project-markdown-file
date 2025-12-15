@@ -15,6 +15,8 @@ from app.web.admin_routes import router as admin_router
 from app.web.dashboard_routes import router as dashboard_router
 from app.middleware.rate_limiter import RateLimitMiddleware
 from app.middleware.security import SecurityHeadersMiddleware, TorCircuitMiddleware
+from app.web.error_handlers import http_exception_handler
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
 settings = get_settings()
@@ -76,6 +78,8 @@ app.include_router(api_router)
 app.include_router(web_router)
 app.include_router(dashboard_router)
 app.include_router(admin_router)
+
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 
 @app.get("/health")
 async def health():
